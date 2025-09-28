@@ -15,11 +15,18 @@ const simpleGit = require('simple-git');
 const axios = require('axios');
 const glob = require('glob');
 const tempy = require('tempy');
+const ora = require('ora');
 
 const TemplatePackage = require('../models/template');
 const TemplateRegistry = require('../models/registry');
 const CacheStore = require('../models/cache');
+const CacheManager = require('./cache-manager');
+const TemplateValidator = require('./template-validator');
+const RegistryManager = require('./registry-manager');
+const NpmService = require('../services/npm-service');
 const { validateFilePath, validateGitUrl } = require('../utils/validation');
+const Logger = require('./logger');
+const { ServiceError, ValidationError, FileSystemError } = require('./error-handler');
 
 const execAsync = promisify(exec);
 
@@ -38,6 +45,7 @@ class TemplateManager {
    * @param {number} options.cacheTTL - Cache time-to-live in milliseconds
    * @param {Object} options.logger - Logger instance
    * @param {boolean} options.enableCache - Whether to enable caching
+   * @param {CacheManager} options.cacheManager - External CacheManager instance
    */
   constructor(options = {}) {
     /**
@@ -71,7 +79,32 @@ class TemplateManager {
     this.enableCache = options.enableCache !== false;
 
     /**
-     * Cache store instances
+     * CacheManager instance for enhanced caching operations
+     * @type {CacheManager}
+     */
+    this.cacheManager = options.cacheManager || null;
+
+    /**
+     * TemplateValidator instance for comprehensive template validation
+     * @type {TemplateValidator}
+     */
+    this.templateValidator = new TemplateValidator({
+      logger: this.logger,
+      cacheManager: this.cacheManager
+    });
+
+    /**
+     * RegistryManager instance for private registry management
+     * @type {RegistryManager}
+     */
+    this.registryManager = new RegistryManager({
+      configDir: options.configDir,
+      logger: this.logger,
+      enableEncryption: options.enableEncryption !== false
+    });
+
+    /**
+     * Cache store instances (legacy, for backward compatibility)
      * @type {Map<string, CacheStore>}
      */
     this.cacheStore = new Map();
@@ -104,6 +137,16 @@ class TemplateManager {
    * @private
    */
   initialize() {
+    // Initialize CacheManager if not provided
+    if (this.enableCache && !this.cacheManager) {
+      this.cacheManager = new CacheManager({
+        cacheDir: this.cacheDir,
+        ttl: this.cacheTTL,
+        enableMetrics: true,
+        persistent: true
+      });
+    }
+
     // Ensure cache directory exists
     if (this.enableCache) {
       this.ensureCacheDirectory();
@@ -117,7 +160,8 @@ class TemplateManager {
     this.logger.info('TemplateManager initialized', {
       registries: this.registries.length,
       cacheEnabled: this.enableCache,
-      cacheDir: this.cacheDir
+      cacheDir: this.cacheDir,
+      hasCacheManager: !!this.cacheManager
     });
   }
 
@@ -127,12 +171,11 @@ class TemplateManager {
    * @returns {Object} Logger instance
    */
   createDefaultLogger() {
-    return {
-      debug: (message, data = {}) => console.log(`[DEBUG] ${message}`, data),
-      info: (message, data = {}) => console.log(`[INFO] ${message}`, data),
-      warn: (message, data = {}) => console.warn(`[WARN] ${message}`, data),
-      error: (message, data = {}) => console.error(`[ERROR] ${message}`, data)
-    };
+    return Logger.create('TemplateManager', {
+      enableConsole: true,
+      enableFile: false,
+      level: 'info'
+    });
   }
 
   /**
@@ -442,18 +485,23 @@ class TemplateManager {
     }
 
     try {
+      const spinner = ora(`Downloading template ${templateId}@${version}`).start();
+
       this.logger.info('Downloading template', { templateId, version, forceDownload });
 
+      spinner.text = 'Getting template information...';
       // Get template information
       const template = await this.getTemplate(templateId);
 
       // Check cache first
+      spinner.text = 'Checking cache...';
       const cacheKey = `${templateId}_${version}`;
       if (!forceDownload && this.enableCache) {
         const cachedPath = await this.getCachedTemplatePath(templateId, version);
         if (cachedPath) {
           this.stats.cacheHits++;
           this.logger.info('Template found in cache', { templateId, version, path: cachedPath });
+          spinner.succeed('Template loaded from cache');
           return {
             success: true,
             path: cachedPath,
@@ -467,23 +515,28 @@ class TemplateManager {
       this.stats.cacheMisses++;
 
       // Download template
+      spinner.text = 'Preparing download...';
       const downloadPath = destination || await this.getTemplateDownloadPath(templateId, version);
 
       if (templateId.startsWith('@xagi/')) {
         // NPM-based template
+        spinner.text = 'Downloading NPM template...';
         await this.downloadNpmTemplate(templateId, version, downloadPath);
       } else if (templateId.includes('github.com') || templateId.includes('gitlab.com')) {
         // Git-based template
+        spinner.text = 'Downloading Git template...';
         await this.downloadGitTemplate(templateId, version, downloadPath);
       } else {
         throw new Error(`Unsupported template type: ${templateId}`);
       }
 
       // Validate downloaded template
+      spinner.text = 'Validating downloaded template...';
       await this.validateDownloadedTemplate(downloadPath, template);
 
       // Cache the template
       if (this.enableCache) {
+        spinner.text = 'Caching template...';
         await this.cacheDownloadedTemplate(templateId, version, downloadPath);
       }
 
@@ -493,6 +546,8 @@ class TemplateManager {
         version,
         path: downloadPath
       });
+
+      spinner.succeed(`Template downloaded successfully: ${templateId}@${version}`);
 
       return {
         success: true,
@@ -525,16 +580,75 @@ class TemplateManager {
       await fs.remove(downloadPath);
       await fs.ensureDir(downloadPath);
 
-      // Use npm pack to download the package
-      const packCommand = `npm pack ${templateId}@${version}`;
-      const { stdout } = await execAsync(packCommand, { cwd: downloadPath });
+      // Check if this template should be downloaded from a private registry
+      const registry = this.registryManager._registryCache.get(templateId.split('/')[0]);
 
-      // Extract the package filename from npm pack output
-      const packageFile = stdout.trim();
-      const packagePath = path.join(downloadPath, packageFile);
+      if (registry && registry.type === 'private') {
+        // Use NpmService with private registry authentication
+        await this.downloadFromPrivateRegistry(templateId, version, downloadPath, registry);
+      } else {
+        // Use standard npm pack for public registries
+        const packCommand = `npm pack ${templateId}@${version}`;
+        const { stdout } = await execAsync(packCommand, { cwd: downloadPath });
 
-      // Extract the package
-      await execAsync(`tar -xzf "${packageFile}"`, { cwd: downloadPath });
+        // Extract the package filename from npm pack output
+        const packageFile = stdout.trim();
+        const packagePath = path.join(downloadPath, packageFile);
+
+        // Extract the package
+        await execAsync(`tar -xzf "${packageFile}"`, { cwd: downloadPath });
+
+        // Remove the compressed file
+        await fs.remove(packagePath);
+
+        // The package is extracted in a subdirectory, move contents up
+        const extractedDir = path.join(downloadPath, 'package');
+        if (await fs.pathExists(extractedDir)) {
+          const files = await fs.readdir(extractedDir);
+          for (const file of files) {
+            await fs.move(
+              path.join(extractedDir, file),
+              path.join(downloadPath, file)
+            );
+          }
+          await fs.remove(extractedDir);
+        }
+      }
+
+      this.logger.debug('NPM template downloaded', { templateId, version, path: downloadPath });
+    } catch (error) {
+      throw new Error(`Failed to download NPM template: ${error.message}`);
+    }
+  }
+
+  /**
+   * Download template from private registry
+   * @private
+   * @param {string} templateId - Template ID
+   * @param {string} version - Template version
+   * @param {string} downloadPath - Download path
+   * @param {Object} registry - Registry configuration
+   */
+  async downloadFromPrivateRegistry(templateId, version, downloadPath, registry) {
+    try {
+      // Create NpmService instance with private registry configuration
+      const npmService = new NpmService({
+        registryUrl: registry.url,
+        authToken: registry.authToken,
+        timeout: 60000,
+        enableCache: true,
+        cacheDir: this.cacheDir
+      });
+
+      // Download package using NpmService
+      const packageName = templateId.startsWith('@') ? templateId.split('/')[1] : templateId;
+      const downloadResult = await npmService.downloadPackage(packageName, version, {
+        destination: downloadPath
+      });
+
+      // Extract the downloaded package
+      const packagePath = downloadResult.packagePath;
+      await execAsync(`tar -xzf "${packagePath}"`, { cwd: downloadPath });
 
       // Remove the compressed file
       await fs.remove(packagePath);
@@ -552,9 +666,14 @@ class TemplateManager {
         await fs.remove(extractedDir);
       }
 
-      this.logger.debug('NPM template downloaded', { templateId, version, path: downloadPath });
+      this.logger.debug('Private registry template downloaded', {
+        templateId,
+        version,
+        registry: registry.id,
+        path: downloadPath
+      });
     } catch (error) {
-      throw new Error(`Failed to download NPM template: ${error.message}`);
+      throw new Error(`Failed to download from private registry: ${error.message}`);
     }
   }
 
@@ -599,101 +718,101 @@ class TemplateManager {
    */
   async validateDownloadedTemplate(downloadPath, template) {
     try {
-      // Check if directory exists
-      if (!(await fs.pathExists(downloadPath))) {
-        throw new Error('Download directory does not exist');
-      }
+      // Use the comprehensive TemplateValidator for validation
+      const validationOptions = {
+        path: downloadPath,
+        templateType: template.type,
+        strictMode: true,
+        enableSecurityValidation: true,
+        enableDependencyValidation: true,
+        enableStructureValidation: true
+      };
 
-      // Check for package.json
-      const packageJsonPath = path.join(downloadPath, 'package.json');
-      if (!(await fs.pathExists(packageJsonPath))) {
-        throw new Error('package.json not found in downloaded template');
-      }
+      const validationResult = await this.templateValidator.validateTemplatePackage(template, validationOptions);
 
-      // Validate package.json structure
-      const packageJson = await fs.readJSON(packageJsonPath);
-      if (!packageJson.name || !packageJson.version) {
-        throw new Error('Invalid package.json structure');
+      if (!validationResult.isValid) {
+        const errorMessages = validationResult.errors.map(e => e.message).join(', ');
+        throw new Error(`Template validation failed: ${errorMessages}`);
       }
-
-      // Additional validation based on template type
-      await this.validateTemplateStructure(downloadPath, template.type);
 
       this.logger.debug('Downloaded template validated', {
         templateId: template.id,
-        path: downloadPath
+        path: downloadPath,
+        validationDuration: validationResult.metadata.validationDuration,
+        checksPerformed: validationResult.metadata.checksPerformed.length
       });
     } catch (error) {
       throw new Error(`Template validation failed: ${error.message}`);
     }
   }
 
-  /**
-   * Validate template structure based on type
-   * @private
-   * @param {string} templatePath - Template path
-   * @param {string} templateType - Template type
-   */
-  async validateTemplateStructure(templatePath, templateType) {
-    const requiredFiles = {
-      'react-next': ['package.json', 'src', 'pages'],
-      'node-api': ['package.json', 'src', 'routes'],
-      'vue-app': ['package.json', 'src', 'components']
-    };
-
-    const filesToCheck = requiredFiles[templateType] || ['package.json'];
-
-    for (const file of filesToCheck) {
-      const filePath = path.join(templatePath, file);
-      if (!(await fs.pathExists(filePath))) {
-        throw new Error(`Required file/directory not found: ${file}`);
-      }
-    }
-  }
-
+  
   /**
    * Validate template structure and naming
    * @param {Object} templateData - Template data to validate
+   * @param {Object} options - Validation options
    * @returns {Promise<Object>} Validation result
    */
-  async validateTemplate(templateData) {
+  async validateTemplate(templateData, options = {}) {
     try {
-      this.logger.info('Validating template', { templateId: templateData.id });
+      const spinner = ora(`Validating template ${templateData.id}`).start();
 
+      this.logger.info('Validating template', {
+        templateId: templateData.id,
+        options: Object.keys(options)
+      });
+
+      spinner.text = 'Creating template package...';
       // Create template package instance
       const template = new TemplatePackage(templateData);
 
-      // Validate template structure
-      const validation = template.validate();
+      spinner.text = 'Preparing validation options...';
+      // Use the comprehensive TemplateValidator for validation
+      const validationOptions = {
+        path: templateData.path,
+        templateType: template.type,
+        strictMode: options.strictMode || false,
+        enableSecurityValidation: options.enableSecurityValidation !== false,
+        enableDependencyValidation: options.enableDependencyValidation !== false,
+        enableStructureValidation: options.enableStructureValidation !== false,
+        enableSchemaValidation: options.enableSchemaValidation !== false,
+        enableVersionValidation: options.enableVersionValidation !== false
+      };
 
-      if (!validation.isValid) {
+      spinner.text = 'Running validation checks...';
+      const validationResult = await this.templateValidator.validateTemplatePackage(template, validationOptions);
+
+      if (!validationResult.isValid) {
         this.logger.warn('Template validation failed', {
           templateId: templateData.id,
-          errors: validation.errors
+          errors: validationResult.errors.length,
+          warnings: validationResult.warnings.length
         });
+        spinner.fail(`Template validation failed: ${templateData.id}`);
         return {
           isValid: false,
-          errors: validation.errors,
-          warnings: validation.warnings || [],
-          template: template.toJSON()
+          errors: validationResult.errors,
+          warnings: validationResult.warnings,
+          template: template.toJSON(),
+          metadata: validationResult.metadata
         };
-      }
-
-      // Validate template files if path is provided
-      if (templateData.path) {
-        await this.validateTemplateFiles(templateData.path, template.type);
       }
 
       this.logger.info('Template validation completed', {
         templateId: templateData.id,
-        isValid: true
+        isValid: true,
+        validationDuration: validationResult.metadata.validationDuration,
+        checksPerformed: validationResult.metadata.checksPerformed.length
       });
+
+      spinner.succeed(`Template validation completed: ${templateData.id}`);
 
       return {
         isValid: true,
         errors: [],
-        warnings: validation.warnings || [],
-        template: template.toJSON()
+        warnings: validationResult.warnings,
+        template: template.toJSON(),
+        metadata: validationResult.metadata
       };
     } catch (error) {
       this.logger.error('Template validation error', {
@@ -702,107 +821,14 @@ class TemplateManager {
       });
       return {
         isValid: false,
-        errors: [error.message],
+        errors: [{ message: error.message, code: 'VALIDATION_ERROR' }],
         warnings: [],
         template: templateData
       };
     }
   }
 
-  /**
-   * Validate template files
-   * @private
-   * @param {string} templatePath - Template path
-   * @param {string} templateType - Template type
-   */
-  async validateTemplateFiles(templatePath, templateType) {
-    // Validate file paths
-    const pathValidation = validateFilePath(templatePath);
-    if (!pathValidation.isValid) {
-      throw new Error(`Invalid template path: ${pathValidation.errors.join(', ')}`);
-    }
-
-    // Check for security issues
-    await this.validateTemplateSecurity(templatePath);
-
-    // Validate template type specific requirements
-    await this.validateTemplateTypeRequirements(templatePath, templateType);
-  }
-
-  /**
-   * Validate template security
-   * @private
-   * @param {string} templatePath - Template path
-   */
-  async validateTemplateSecurity(templatePath) {
-    // Check for potentially dangerous files
-    const dangerousPatterns = [
-      '**/*.exe',
-      '**/*.bat',
-      '**/*.cmd',
-      '**/*.sh',
-      '**/node_modules/**'
-    ];
-
-    for (const pattern of dangerousPatterns) {
-      const files = await new Promise((resolve, reject) => {
-        glob(pattern, { cwd: templatePath, nodir: true }, (err, files) => {
-          if (err) {reject(err);}
-          else {resolve(files);}
-        });
-      });
-
-      if (files.length > 0) {
-        throw new Error(`Potentially dangerous files found: ${files.join(', ')}`);
-      }
-    }
-  }
-
-  /**
-   * Validate template type requirements
-   * @private
-   * @param {string} templatePath - Template path
-   * @param {string} templateType - Template type
-   */
-  async validateTemplateTypeRequirements(templatePath, templateType) {
-    const requirements = {
-      'react-next': {
-        files: ['package.json', 'src', 'pages'],
-        dependencies: ['react', 'next']
-      },
-      'node-api': {
-        files: ['package.json', 'src', 'routes'],
-        dependencies: ['express']
-      },
-      'vue-app': {
-        files: ['package.json', 'src', 'components'],
-        dependencies: ['vue']
-      }
-    };
-
-    const reqs = requirements[templateType];
-    if (!reqs) {return;}
-
-    // Check required files
-    for (const file of reqs.files) {
-      const filePath = path.join(templatePath, file);
-      if (!(await fs.pathExists(filePath))) {
-        throw new Error(`Required file/directory missing for ${templateType}: ${file}`);
-      }
-    }
-
-    // Check package.json dependencies
-    const packageJsonPath = path.join(templatePath, 'package.json');
-    const packageJson = await fs.readJSON(packageJsonPath);
-    const dependencies = { ...packageJson.dependencies, ...packageJson.devDependencies };
-
-    for (const dep of reqs.dependencies) {
-      if (!dependencies[dep]) {
-        throw new Error(`Required dependency missing for ${templateType}: ${dep}`);
-      }
-    }
-  }
-
+  
   /**
    * Install template to create project
    * @param {string} templateId - Template ID
@@ -831,50 +857,59 @@ class TemplateManager {
     }
 
     try {
+      const spinner = ora(`Installing template ${templateId} as ${projectName}`).start();
+
       this.logger.info('Installing template', {
         templateId,
         projectName,
         targetDir
       });
 
+      spinner.text = 'Getting template information...';
       // Get template information
       const template = await this.getTemplate(templateId);
 
       // Validate configuration against template schema
+      spinner.text = 'Validating configuration...';
       const configValidation = template.validateConfig(variables);
       if (!configValidation.isValid) {
         throw new Error(`Invalid configuration: ${configValidation.errors.join(', ')}`);
       }
 
       // Download template if not already cached
+      spinner.text = 'Downloading template...';
       const downloadResult = await this.downloadTemplate(templateId, 'latest', {
         forceDownload: options.forceDownload
       });
 
       // Prepare target directory
+      spinner.text = 'Preparing target directory...';
       const finalTargetDir = targetDir || path.join(process.cwd(), projectName);
       await this.prepareTargetDirectory(finalTargetDir, projectName);
 
       // Copy template files
+      spinner.text = 'Copying template files...';
       await this.copyTemplateFiles(downloadResult.path, finalTargetDir);
 
       // Process template variables
-      await this.processTemplateVariables(finalTargetDir, {
-        projectName,
-        ...variables
-      });
+      spinner.text = 'Processing template variables...';
+      const templateVariables = Object.assign({ projectName }, variables);
+      await this.processTemplateVariables(finalTargetDir, templateVariables);
 
       // Install dependencies
       if (!skipInstall) {
+        spinner.text = 'Installing dependencies...';
         await this.installDependencies(finalTargetDir, template);
       }
 
       // Initialize git repository
       if (!skipGit) {
+        spinner.text = 'Initializing git repository...';
         await this.initializeGitRepo(finalTargetDir, projectName);
       }
 
       // Generate project info
+      spinner.text = 'Generating project information...';
       const projectInfo = await this.generateProjectInfo(finalTargetDir, template, projectName);
 
       this.stats.templatesInstalled++;
@@ -883,6 +918,8 @@ class TemplateManager {
         projectName,
         path: finalTargetDir
       });
+
+      spinner.succeed(`Template installed successfully: ${projectName}`);
 
       return {
         success: true,
@@ -1177,10 +1214,8 @@ class TemplateManager {
         templateInfo.devDependencies = template.devDependencies;
 
         // Get dependency information from npm
-        templateInfo.dependencyInfo = await this.getDependencyInfo({
-          ...template.dependencies,
-          ...template.devDependencies
-        });
+        const allDependencies = Object.assign({}, template.dependencies, template.devDependencies);
+        templateInfo.dependencyInfo = await this.getDependencyInfo(allDependencies);
       }
 
       // Add usage statistics
@@ -1270,10 +1305,10 @@ class TemplateManager {
           const packageInfo = response.data;
           dependencyInfo[name] = {
             version: version,
-            latest: packageInfo['dist-tags']?.latest,
+            latest: packageInfo['dist-tags'] && packageInfo['dist-tags'].latest,
             description: packageInfo.description,
             homepage: packageInfo.homepage,
-            repository: packageInfo.repository?.url,
+            repository: packageInfo.repository && packageInfo.repository.url,
             license: packageInfo.license,
             deprecated: packageInfo.deprecated || false
           };
@@ -1302,6 +1337,21 @@ class TemplateManager {
   async getCachedData(key) {
     if (!this.enableCache) {return null;}
 
+    // Use CacheManager if available
+    if (this.cacheManager) {
+      try {
+        const cacheKey = `template_data_${key}`;
+        const cacheEntry = await this.cacheManager.getCacheEntry(cacheKey, 'metadata');
+        if (cacheEntry) {
+          this.stats.cacheHits++;
+          return cacheEntry.metadata.data;
+        }
+      } catch (error) {
+        this.logger.warn('Failed to get cached data from CacheManager', { key, error: error.message });
+      }
+    }
+
+    // Fallback to legacy cache system
     try {
       const cacheFile = path.join(this.cacheDir, `${key}.json`);
       if (!(await fs.pathExists(cacheFile))) {return null;}
@@ -1316,6 +1366,7 @@ class TemplateManager {
         return null;
       }
 
+      this.stats.cacheHits++;
       return data.value;
     } catch (error) {
       this.logger.warn('Failed to get cached data', { key, error: error.message });
@@ -1332,6 +1383,26 @@ class TemplateManager {
   async setCachedData(key, value) {
     if (!this.enableCache) {return;}
 
+    // Use CacheManager if available
+    if (this.cacheManager) {
+      try {
+        const cacheKey = `template_data_${key}`;
+        const tempPath = path.join(this.cacheDir, 'temp');
+        await fs.ensureDir(tempPath);
+
+        // Create temporary metadata file
+        const metadataPath = path.join(tempPath, `${cacheKey}.json`);
+        await fs.writeJSON(metadataPath, { data: value, cachedAt: new Date().toISOString() });
+
+        await this.cacheManager.setCacheEntry(cacheKey, 'metadata', tempPath);
+        await fs.remove(tempPath);
+        return;
+      } catch (error) {
+        this.logger.warn('Failed to set cached data using CacheManager', { key, error: error.message });
+      }
+    }
+
+    // Fallback to legacy cache system
     try {
       const cacheFile = path.join(this.cacheDir, `${key}.json`);
       const cacheData = {
@@ -1353,6 +1424,20 @@ class TemplateManager {
    * @returns {Promise<string|null>} Cached template path or null
    */
   async getCachedTemplatePath(templateId, version) {
+    // Use CacheManager if available
+    if (this.cacheManager) {
+      try {
+        const cacheEntry = await this.cacheManager.getCacheEntry(templateId, version);
+        if (cacheEntry && await cacheEntry.validate()) {
+          this.stats.cacheHits++;
+          return cacheEntry.path;
+        }
+      } catch (error) {
+        this.logger.warn('Failed to get cached template from CacheManager', { templateId, version, error: error.message });
+      }
+    }
+
+    // Fallback to legacy cache system
     try {
       const cacheKey = `${templateId}_${version}`;
       const cachePath = path.join(this.cacheDir, 'templates', cacheKey);
@@ -1368,15 +1453,17 @@ class TemplateManager {
       });
 
       if (await cacheStore.validate()) {
+        this.stats.cacheHits++;
         return cachePath;
       }
 
       // Remove invalid cache
       await fs.remove(cachePath);
-      return null;
     } catch (error) {
-      return null;
+      this.logger.warn('Failed to get cached template path', { templateId, version, error: error.message });
     }
+
+    return null;
   }
 
   /**
@@ -1400,6 +1487,14 @@ class TemplateManager {
    */
   async cacheDownloadedTemplate(templateId, version, downloadPath) {
     try {
+      // Use CacheManager if available
+      if (this.cacheManager) {
+        await this.cacheManager.setCacheEntry(templateId, version, downloadPath);
+        this.logger.debug('Template cached using CacheManager', { templateId, version, path: downloadPath });
+        return;
+      }
+
+      // Fallback to legacy cache system
       const cacheKey = `${templateId}_${version}`;
       const cachePath = path.join(this.cacheDir, 'templates', cacheKey);
 
@@ -1415,7 +1510,7 @@ class TemplateManager {
       await cacheStore.validate();
       this.cacheStore.set(cacheKey, cacheStore);
 
-      this.logger.debug('Template cached', { templateId, version, path: cachePath });
+      this.logger.debug('Template cached using legacy system', { templateId, version, path: cachePath });
     } catch (error) {
       this.logger.warn('Failed to cache template', {
         templateId,
@@ -1433,6 +1528,36 @@ class TemplateManager {
     try {
       this.logger.info('Clearing template cache');
 
+      // Use CacheManager if available
+      if (this.cacheManager) {
+        try {
+          const cacheStats = await this.cacheManager.getCacheStats();
+          const result = await this.cacheManager.clearCache();
+
+          // Clear in-memory caches
+          this.cacheStore.clear();
+          this.templatePackages.clear();
+
+          // Reset cache statistics
+          this.stats.cacheHits = 0;
+          this.stats.cacheMisses = 0;
+
+          this.logger.info('Template cache cleared using CacheManager', { result });
+
+          return {
+            success: true,
+            message: 'Template cache cleared successfully',
+            cacheManager: true,
+            clearedEntries: result.clearedEntries,
+            preservedEntries: result.preservedEntries
+          };
+        } catch (error) {
+          this.logger.warn('Failed to clear cache using CacheManager', { error: error.message });
+          // Fall through to legacy method
+        }
+      }
+
+      // Fallback to legacy cache clearing
       await fs.remove(this.cacheDir);
       await this.ensureCacheDirectory();
 
@@ -1444,11 +1569,12 @@ class TemplateManager {
       this.stats.cacheHits = 0;
       this.stats.cacheMisses = 0;
 
-      this.logger.info('Template cache cleared');
+      this.logger.info('Template cache cleared using legacy method');
 
       return {
         success: true,
-        message: 'Template cache cleared successfully'
+        message: 'Template cache cleared successfully',
+        cacheManager: false
       };
     } catch (error) {
       this.logger.error('Failed to clear cache', { error: error.message });
@@ -1458,10 +1584,10 @@ class TemplateManager {
 
   /**
    * Get cache statistics
-   * @returns {Object} Cache statistics
+   * @returns {Promise<Object>} Cache statistics
    */
-  getCacheStats() {
-    return {
+  async getCacheStats() {
+    const baseStats = {
       enabled: this.enableCache,
       cacheDir: this.cacheDir,
       cacheTTL: this.cacheTTL,
@@ -1471,20 +1597,37 @@ class TemplateManager {
         ? (this.stats.cacheHits / (this.stats.cacheHits + this.stats.cacheMisses)) * 100
         : 0,
       cachedTemplates: this.cacheStore.size,
-      cachedPackages: this.templatePackages.size
+      cachedPackages: this.templatePackages.size,
+      hasCacheManager: !!this.cacheManager
     };
+
+    // Include CacheManager stats if available
+    if (this.cacheManager) {
+      try {
+        const cacheManagerStats = await this.cacheManager.getCacheStats();
+        baseStats.cacheManager = {
+          basic: cacheManagerStats.basic,
+          performance: cacheManagerStats.performance,
+          policies: cacheManagerStats.policies,
+          lru: cacheManagerStats.lru
+        };
+      } catch (error) {
+        baseStats.cacheManagerError = error.message;
+      }
+    }
+
+    return baseStats;
   }
 
   /**
    * Get operation statistics
-   * @returns {Object} Operation statistics
+   * @returns {Promise<Object>} Operation statistics
    */
-  getStats() {
-    return {
-      ...this.stats,
-      registries: this.registries.length,
-      cacheStats: this.getCacheStats()
-    };
+  async getStats() {
+    const stats = Object.assign({}, this.stats);
+    stats.registries = this.registries.length;
+    stats.cacheStats = await this.getCacheStats();
+    return stats;
   }
 
   /**
@@ -1528,7 +1671,122 @@ class TemplateManager {
    * @returns {Array<TemplateRegistry>} Array of registries
    */
   getRegistries() {
-    return [...this.registries];
+    return this.registries.slice();
+  }
+
+  /**
+   * Add private registry using RegistryManager
+   * @param {Object} registryConfig - Registry configuration
+   * @returns {Object} Added registry configuration
+   */
+  addPrivateRegistry(registryConfig) {
+    try {
+      const registry = this.registryManager.addRegistry(registryConfig);
+
+      // Create TemplateRegistry instance for compatibility
+      const templateRegistry = new TemplateRegistry({
+        id: registry.id,
+        name: registry.name,
+        url: registry.url,
+        type: 'private',
+        authRequired: registry.authType !== 'none',
+        cachePolicy: 'default'
+      });
+
+      this.registries.push(templateRegistry);
+      this.logger.info('Private registry added', { registryId: registry.id });
+
+      return registry;
+    } catch (error) {
+      this.logger.error('Failed to add private registry', { error: error.message });
+      throw error;
+    }
+  }
+
+  /**
+   * Remove private registry using RegistryManager
+   * @param {string} registryId - Registry ID to remove
+   * @returns {boolean} Whether registry was removed
+   */
+  removePrivateRegistry(registryId) {
+    try {
+      // Remove from RegistryManager
+      const removed = this.registryManager.removeRegistry(registryId);
+
+      // Remove from TemplateManager registries
+      const index = this.registries.findIndex(r => r.id === registryId);
+      if (index !== -1) {
+        this.registries.splice(index, 1);
+      }
+
+      this.logger.info('Private registry removed', { registryId });
+      return removed;
+    } catch (error) {
+      this.logger.error('Failed to remove private registry', { error: error.message });
+      throw error;
+    }
+  }
+
+  /**
+   * List private registries from RegistryManager
+   * @param {Object} options - Listing options
+   * @returns {Array} Array of private registries
+   */
+  listPrivateRegistries(options = {}) {
+    return this.registryManager.listRegistries(options);
+  }
+
+  /**
+   * Test private registry connectivity
+   * @param {string} registryId - Registry ID
+   * @returns {Promise<Object>} Connectivity test result
+   */
+  async testPrivateRegistry(registryId) {
+    try {
+      return await this.registryManager.testConnectivity(registryId);
+    } catch (error) {
+      this.logger.error('Failed to test private registry connectivity', { registryId, error: error.message });
+      throw error;
+    }
+  }
+
+  /**
+   * Search packages in private registry
+   * @param {string} registryId - Registry ID
+   * @param {string} query - Search query
+   * @param {Object} options - Search options
+   * @returns {Promise<Array>} Search results
+   */
+  async searchPrivatePackages(registryId, query, options = {}) {
+    try {
+      return await this.registryManager.searchPackages(registryId, query, options);
+    } catch (error) {
+      this.logger.error('Failed to search private packages', { registryId, query, error: error.message });
+      throw error;
+    }
+  }
+
+  /**
+   * Get package info from private registry
+   * @param {string} registryId - Registry ID
+   * @param {string} packageName - Package name
+   * @returns {Promise<Object>} Package information
+   */
+  async getPrivatePackageInfo(registryId, packageName) {
+    try {
+      return await this.registryManager.getPackageInfo(registryId, packageName);
+    } catch (error) {
+      this.logger.error('Failed to get private package info', { registryId, packageName, error: error.message });
+      throw error;
+    }
+  }
+
+  /**
+   * Get registry statistics
+   * @returns {Object} Registry statistics
+   */
+  getRegistryStats() {
+    return this.registryManager.getStats();
   }
 }
 

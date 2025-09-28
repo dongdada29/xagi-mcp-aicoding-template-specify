@@ -154,24 +154,271 @@ class NpmService {
    */
   _createHttpClient() {
     const headers = {
-      'User-Agent': 'NpmService/1.0.0',
+      'User-Agent': '@xagi/create-ai-project/1.0.0',
       'Accept': 'application/json',
       ...this._headers
     };
 
+    // Add authentication based on registry type
     if (this._authToken) {
-      headers.Authorization = `Bearer ${this._authToken}`;
+      if (this._registryUrl.includes('registry.npmjs.org')) {
+        // For npm registry, use Bearer token
+        headers.Authorization = `Bearer ${this._authToken}`;
+      } else {
+        // For private registries, use basic auth with token
+        const authString = `:${this._authToken}`;
+        headers.Authorization = `Basic ${Buffer.from(authString).toString('base64')}`;
+      }
     }
+
+    // Add npm-specific headers
+    headers['npm-command'] = 'view';
+    headers['npm-scope'] = '@xagi';
+    headers['npm-session'] = this._generateSessionId();
 
     this._httpClient = axios.create({
       baseURL: this._registryUrl,
       timeout: this._timeout,
       headers: headers,
-      validateStatus: (status) => status < 500
+      validateStatus: (status) => status < 500,
+      // Enable proxy support from npm config
+      proxy: this._getProxyConfig()
     });
+
+    // Add interceptors for enhanced error handling
+    this._httpClient.interceptors.request.use(this._handleRequest.bind(this));
+    this._httpClient.interceptors.response.use(this._handleResponse.bind(this), this._handleError.bind(this));
 
     // Store the created instance for testing
     this._httpClientInstance = this._httpClient;
+  }
+
+  /**
+   * Generate unique session ID
+   * @returns {string} Session ID
+   * @private
+   */
+  _generateSessionId() {
+    return `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  /**
+   * Get proxy configuration from npm config
+   * @returns {Object|null} Proxy configuration
+   * @private
+   */
+  _getProxyConfig() {
+    try {
+      // Try to read npm configuration for proxy settings
+      const npmConfig = this._readNpmConfig();
+      if (npmConfig.proxy) {
+        return {
+          host: npmConfig.proxy.replace(/^https?:\/\//, '').replace(/\/.*$/, ''),
+          protocol: npmConfig.proxy.startsWith('https') ? 'https' : 'http'
+        };
+      }
+    } catch (error) {
+      // Silently ignore proxy config errors
+    }
+    return null;
+  }
+
+  /**
+   * Read npm configuration
+   * @returns {Object} Npm configuration
+   * @private
+   */
+  _readNpmConfig() {
+    const npmrcFiles = [
+      path.join(process.cwd(), '.npmrc'),
+      path.join(process.env.HOME || process.env.USERPROFILE, '.npmrc'),
+      path.join(process.env.HOME || process.env.USERPROFILE, '.npmrc')
+    ];
+
+    const config = {};
+    for (const npmrcFile of npmrcFiles) {
+      try {
+        if (fs.existsSync(npmrcFile)) {
+          const content = fs.readFileSync(npmrcFile, 'utf8');
+          content.split('\n').forEach(line => {
+            const trimmed = line.trim();
+            if (trimmed && !trimmed.startsWith('#')) {
+              const [key, value] = trimmed.split('=');
+              if (key && value) {
+                config[key.trim()] = value.trim().replace(/^"|"$/g, '');
+              }
+            }
+          });
+        }
+      } catch (error) {
+        // Continue to next file
+      }
+    }
+    return config;
+  }
+
+  /**
+   * Handle outgoing HTTP requests
+   * @param {Object} config - Request config
+   * @returns {Object} Modified request config
+   * @private
+   */
+  _handleRequest(config) {
+    // Add retry configuration
+    config.retry = {
+      retries: 3,
+      retryDelay: 1000,
+      retryCondition: (error) => {
+        return this._shouldRetryRequest(error);
+      }
+    };
+
+    // Add request metadata
+    config.metadata = {
+      startTime: Date.now(),
+      url: config.url,
+      method: config.method
+    };
+
+    return config;
+  }
+
+  /**
+   * Handle successful HTTP responses
+   * @param {Object} response - Axios response
+   * @returns {Object} Processed response
+   * @private
+   */
+  _handleResponse(response) {
+    const duration = Date.now() - response.config.metadata.startTime;
+
+    // Log response metrics
+    this._logRequest(response.config.metadata, response.status, duration);
+
+    // Cache successful responses
+    if (response.status === 200 && this._enableCache) {
+      this._cacheResponse(response.config.url, response.data);
+    }
+
+    return response;
+  }
+
+  /**
+   * Handle HTTP errors
+   * @param {Object} error - Axios error
+   * @returns {Promise<never>} Rejected promise
+   * @private
+   */
+  _handleError(error) {
+    if (error.config && error.config.metadata) {
+      const duration = Date.now() - error.config.metadata.startTime;
+      this._logRequest(error.config.metadata, error.response?.status || 500, duration);
+    }
+
+    // Enhanced error handling
+    if (error.response) {
+      // Registry responded with error status
+      const status = error.response.status;
+      const message = this._getRegistryErrorMessage(status, error.response.data);
+
+      throw new Error(`Registry error (${status}): ${message}`);
+    } else if (error.request) {
+      // Network error
+      throw new Error(`Network error: ${error.message}`);
+    } else {
+      // Configuration error
+      throw new Error(`Request configuration error: ${error.message}`);
+    }
+  }
+
+  /**
+   * Determine if request should be retried
+   * @param {Object} error - Request error
+   * @returns {boolean} Whether to retry
+   * @private
+   */
+  _shouldRetryRequest(error) {
+    // Retry on network errors
+    if (!error.response) {
+      return true;
+    }
+
+    // Retry on 5xx server errors
+    if (error.response.status >= 500) {
+      return true;
+    }
+
+    // Retry on 429 (rate limit) and 408 (timeout)
+    if ([429, 408].includes(error.response.status)) {
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * Get user-friendly error message from registry response
+   * @param {number} status - HTTP status code
+   * @param {Object} data - Response data
+   * @returns {string} Error message
+   * @private
+   */
+  _getRegistryErrorMessage(status, data) {
+    switch (status) {
+      case 401:
+        return 'Authentication required. Check your credentials.';
+      case 403:
+        return 'Access forbidden. You may not have permission to access this resource.';
+      case 404:
+        return 'Package not found in registry.';
+      case 429:
+        return 'Rate limit exceeded. Please try again later.';
+      case 500:
+        return 'Registry server error. Please try again later.';
+      default:
+        return data.error || data.message || 'Unknown registry error.';
+    }
+  }
+
+  /**
+   * Log request metrics
+   * @param {Object} metadata - Request metadata
+   * @param {number} status - Response status
+   * @param {number} duration - Request duration
+   * @private
+   */
+  _logRequest(metadata, status, duration) {
+    // In a real implementation, this would use a proper logger
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[NpmService] ${metadata.method.toUpperCase()} ${metadata.url} - ${status} (${duration}ms)`);
+    }
+  }
+
+  /**
+   * Cache response data
+   * @param {string} url - Request URL
+   * @param {Object} data - Response data
+   * @private
+   */
+  _cacheResponse(url, data) {
+    const cacheKey = crypto.createHash('md5').update(url).digest('hex');
+    const cacheEntry = {
+      data,
+      timestamp: Date.now(),
+      ttl: this._cacheTtl
+    };
+
+    this._memoryCache.set(cacheKey, cacheEntry);
+
+    // Persist to disk
+    try {
+      const cacheFile = path.join(this._cacheDir, 'responses.json');
+      const existingCache = fs.existsSync(cacheFile) ? fs.readJsonSync(cacheFile) : {};
+      existingCache[cacheKey] = cacheEntry;
+      fs.writeJsonSync(cacheFile, existingCache);
+    } catch (error) {
+      // Silently ignore cache persistence errors
+    }
   }
 
   /**

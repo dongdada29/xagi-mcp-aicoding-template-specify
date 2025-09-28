@@ -476,8 +476,8 @@ class GitService {
         // Enhance with repository information
         templateInfo.repository = {
           ...repoInfo,
-          branches: await this.gitManager.getBranches(url),
-          tags: await this.gitManager.getTags(url)
+          branches: await this.getRepositoryBranches(url),
+          tags: await this.getRepositoryTags(url)
         };
 
         // Cache result
@@ -509,6 +509,576 @@ class GitService {
         error
       );
       throw gitError;
+    }
+  }
+
+  /**
+   * Get repository branches with enhanced information
+   * @param {string} url - Git repository URL
+   * @param {Object} options - Branch options
+   * @returns {Promise<Array>} Array of branch information
+   */
+  async getRepositoryBranches(url, options = {}) {
+    const spinner = ora(`Getting branches for ${url}`).start();
+
+    try {
+      this.logger.info(`Getting repository branches: ${url}`);
+
+      // Try to get branches without cloning first
+      try {
+        const branches = await this.gitManager.getBranches(url);
+
+        // Enhance branch information with additional details
+        const enhancedBranches = await Promise.all(
+          branches.map(async (branch) => {
+            try {
+              // Get branch commit information
+              const branchInfo = await this.getBranchInfo(url, branch.name);
+              return {
+                name: branch.name,
+                isDefault: branch.current || branch.name === 'main' || branch.name === 'master',
+                isProtected: false, // Would need API access to determine this
+                commit: branch.commit || (branchInfo ? branchInfo.commit : null),
+                lastModified: branchInfo ? branchInfo.date : null,
+                author: branchInfo ? branchInfo.author : null,
+                message: branchInfo ? branchInfo.message : null
+              };
+            } catch (error) {
+              this.logger.warn(`Failed to get info for branch ${branch.name}: ${error.message}`);
+              return {
+                name: branch.name,
+                isDefault: branch.current || branch.name === 'main' || branch.name === 'master',
+                isProtected: false,
+                error: error.message
+              };
+            }
+          })
+        );
+
+        spinner.succeed(`Found ${enhancedBranches.length} branches`);
+        return enhancedBranches;
+
+      } catch (error) {
+        // Fallback: clone repository to get branches
+        spinner.text = 'Cloning repository to get branches...';
+        const repoPath = await this.gitManager.cloneRepository(url, {
+          depth: 1,
+          ...options.gitOptions
+        });
+
+        try {
+          const git = this.gitManager.createGitInstance(repoPath);
+          const branchSummary = await git.branchLocal();
+
+          const enhancedBranches = await Promise.all(
+            Object.keys(branchSummary.branches).map(async (branchName) => {
+              try {
+                const branchInfo = branchSummary.branches[branchName];
+                const commitInfo = await this.getCommitInfo(git, branchInfo.commit);
+
+                return {
+                  name: branchName,
+                  isDefault: branchInfo.current || branchName === 'main' || branchName === 'master',
+                  isProtected: false,
+                  commit: branchInfo.commit,
+                  lastModified: commitInfo.date,
+                  author: commitInfo.author,
+                  message: commitInfo.message
+                };
+              } catch (error) {
+                return {
+                  name: branchName,
+                  isDefault: branchSummary.branches[branchName].current || branchName === 'main' || branchName === 'master',
+                  isProtected: false,
+                  error: error.message
+                };
+              }
+            })
+          );
+
+          spinner.succeed(`Found ${enhancedBranches.length} branches`);
+          return enhancedBranches;
+
+        } finally {
+          await this.gitManager.cleanupRepository(repoPath);
+        }
+      }
+
+    } catch (error) {
+      spinner.fail(`Failed to get repository branches: ${error.message}`);
+      throw new GitTemplateError(
+        `Failed to get repository branches: ${error.message}`,
+        'get_branches',
+        url,
+        error
+      );
+    }
+  }
+
+  /**
+   * Get repository tags with enhanced information
+   * @param {string} url - Git repository URL
+   * @param {Object} options - Tag options
+   * @returns {Promise<Array>} Array of tag information
+   */
+  async getRepositoryTags(url, options = {}) {
+    const spinner = ora(`Getting tags for ${url}`).start();
+
+    try {
+      this.logger.info(`Getting repository tags: ${url}`);
+
+      // Try to get tags without cloning first
+      try {
+        const tags = await this.gitManager.getTags(url);
+
+        // Enhance tag information with additional details
+        const enhancedTags = await Promise.all(
+          tags.map(async (tag) => {
+            try {
+              const tagInfo = await this.getTagInfo(url, tag);
+              return {
+                name: tag,
+                version: this.extractVersionFromTag(tag),
+                isLatest: this.isLatestTag(tag, tags),
+                isPrerelease: this.isPrereleaseTag(tag),
+                commit: tagInfo ? tagInfo.commit : null,
+                lastModified: tagInfo ? tagInfo.date : null,
+                author: tagInfo ? tagInfo.author : null,
+                message: tagInfo ? tagInfo.message : null
+              };
+            } catch (error) {
+              this.logger.warn(`Failed to get info for tag ${tag}: ${error.message}`);
+              return {
+                name: tag,
+                version: this.extractVersionFromTag(tag),
+                isLatest: false,
+                isPrerelease: this.isPrereleaseTag(tag),
+                error: error.message
+              };
+            }
+          })
+        );
+
+        spinner.succeed(`Found ${enhancedTags.length} tags`);
+        return enhancedTags;
+
+      } catch (error) {
+        // Fallback: clone repository to get tags
+        spinner.text = 'Cloning repository to get tags...';
+        const repoPath = await this.gitManager.cloneRepository(url, {
+          depth: 1,
+          ...options.gitOptions
+        });
+
+        try {
+          const git = this.gitManager.createGitInstance(repoPath);
+          const tagList = await git.tags();
+
+          const enhancedTags = await Promise.all(
+            tagList.all.map(async (tagName) => {
+              try {
+                const tagInfo = await this.getTagCommitInfo(git, tagName);
+                return {
+                  name: tagName,
+                  version: this.extractVersionFromTag(tagName),
+                  isLatest: this.isLatestTag(tagName, tagList.all),
+                  isPrerelease: this.isPrereleaseTag(tagName),
+                  commit: tagInfo.commit,
+                  lastModified: tagInfo.date,
+                  author: tagInfo.author,
+                  message: tagInfo.message
+                };
+              } catch (error) {
+                return {
+                  name: tagName,
+                  version: this.extractVersionFromTag(tagName),
+                  isLatest: false,
+                  isPrerelease: this.isPrereleaseTag(tagName),
+                  error: error.message
+                };
+              }
+            })
+          );
+
+          spinner.succeed(`Found ${enhancedTags.length} tags`);
+          return enhancedTags;
+
+        } finally {
+          await this.gitManager.cleanupRepository(repoPath);
+        }
+      }
+
+    } catch (error) {
+      spinner.fail(`Failed to get repository tags: ${error.message}`);
+      throw new GitTemplateError(
+        `Failed to get repository tags: ${error.message}`,
+        'get_tags',
+        url,
+        error
+      );
+    }
+  }
+
+  /**
+   * Get branch information
+   * @private
+   */
+  async getBranchInfo(url, branchName) {
+    try {
+      // This would typically use GitManager or direct git commands
+      // For now, return basic info
+      return {
+        commit: null,
+        date: new Date().toISOString(),
+        author: 'Unknown',
+        message: `Branch ${branchName}`
+      };
+    } catch (error) {
+      this.logger.warn(`Failed to get branch info for ${branchName}: ${error.message}`);
+      return null;
+    }
+  }
+
+  /**
+   * Get tag information
+   * @private
+   */
+  async getTagInfo(url, tagName) {
+    try {
+      // This would typically use GitManager or direct git commands
+      // For now, return basic info
+      return {
+        commit: null,
+        date: new Date().toISOString(),
+        author: 'Unknown',
+        message: `Tag ${tagName}`
+      };
+    } catch (error) {
+      this.logger.warn(`Failed to get tag info for ${tagName}: ${error.message}`);
+      return null;
+    }
+  }
+
+  /**
+   * Get commit information from git instance
+   * @private
+   */
+  async getCommitInfo(git, commitHash) {
+    try {
+      const commit = await git.show([commitHash, '--no-stat', '--format=%H|%an|%ae|%ad|%s']);
+      const [hash, author, email, date, message] = commit.split('|');
+
+      return {
+        commit: hash,
+        author: `${author} <${email}>`,
+        date: new Date(date).toISOString(),
+        message: message
+      };
+    } catch (error) {
+      this.logger.warn(`Failed to get commit info for ${commitHash}: ${error.message}`);
+      return {
+        commit: commitHash,
+        author: 'Unknown',
+        date: new Date().toISOString(),
+        message: 'Unknown commit'
+      };
+    }
+  }
+
+  /**
+   * Get tag commit information
+   * @private
+   */
+  async getTagCommitInfo(git, tagName) {
+    try {
+      const tagData = await git.tags(['--points-at', tagName]);
+      const commitHash = tagData.all.length > 0 ? await git.revparse([tagName]) : null;
+
+      if (commitHash) {
+        return await this.getCommitInfo(git, commitHash);
+      }
+
+      return {
+        commit: null,
+        author: 'Unknown',
+        date: new Date().toISOString(),
+        message: `Tag ${tagName}`
+      };
+    } catch (error) {
+      this.logger.warn(`Failed to get tag commit info for ${tagName}: ${error.message}`);
+      return {
+        commit: null,
+        author: 'Unknown',
+        date: new Date().toISOString(),
+        message: `Tag ${tagName}`
+      };
+    }
+  }
+
+  /**
+   * Extract version from tag name
+   * @private
+   */
+  extractVersionFromTag(tagName) {
+    // Remove 'v' prefix if present
+    let version = tagName.replace(/^v/, '');
+
+    // Handle common tag patterns
+    const versionPatterns = [
+      /^(\d+\.\d+\.\d+)$/,           // 1.0.0
+      /^(\d+\.\d+\.\d+-.+)$/,        // 1.0.0-alpha
+      /^(\d+\.\d+\.\d+)$/,           // 1.0.0
+      /^release-(\d+\.\d+\.\d+)$/,    // release-1.0.0
+      /^version-(\d+\.\d+\.\d+)$/     // version-1.0.0
+    ];
+
+    for (const pattern of versionPatterns) {
+      const match = version.match(pattern);
+      if (match) {
+        return match[1];
+      }
+    }
+
+    return version; // Return original if no pattern matches
+  }
+
+  /**
+   * Check if tag is the latest version
+   * @private
+   */
+  isLatestTag(tagName, allTags) {
+    const version = this.extractVersionFromTag(tagName);
+    const versions = allTags.map(tag => this.extractVersionFromTag(tag));
+
+    // Simple version comparison (would use semver in production)
+    return versions.sort().pop() === version;
+  }
+
+  /**
+   * Check if tag is a prerelease
+   * @private
+   */
+  isPrereleaseTag(tagName) {
+    const version = this.extractVersionFromTag(tagName);
+    const prereleasePatterns = [
+      /-alpha\b/,
+      /-beta\b/,
+      /-rc\b/,
+      /-pre\b/,
+      /-dev\b/,
+      /-next\b/
+    ];
+
+    return prereleasePatterns.some(pattern => pattern.test(version));
+  }
+
+  /**
+   * Switch to specific branch or tag
+   * @param {string} url - Git repository URL
+   * @param {string} ref - Branch or tag name
+   * @param {Object} options - Checkout options
+   * @returns {Promise<Object>} Checkout result
+   */
+  async checkoutReference(url, ref, options = {}) {
+    const spinner = ora(`Checking out ${ref} from ${url}`).start();
+
+    try {
+      this.logger.info(`Checking out reference: ${ref} from ${url}`);
+
+      // Validate reference exists
+      const allBranches = await this.getRepositoryBranches(url);
+      const allTags = await this.getRepositoryTags(url);
+
+      const branchExists = allBranches.some(b => b.name === ref);
+      const tagExists = allTags.some(t => t.name === ref);
+
+      if (!branchExists && !tagExists) {
+        throw new GitTemplateError(
+          `Reference '${ref}' not found in repository`,
+          'checkout_reference',
+          url
+        );
+      }
+
+      // Clone and checkout the reference
+      const repoPath = await this.gitManager.cloneRepository(url, {
+        branch: branchExists ? ref : undefined,
+        tag: tagExists ? ref : undefined,
+        depth: options.depth || 1,
+        ...options.gitOptions
+      });
+
+      try {
+        // If it's a tag and we want to create a branch from it
+        if (tagExists && options.createBranch) {
+          const git = this.gitManager.createGitInstance(repoPath);
+          await git.checkoutBranch(options.createBranch, ref);
+
+          spinner.succeed(`Created branch ${options.createBranch} from tag ${ref}`);
+          return {
+            success: true,
+            repository: url,
+            reference: ref,
+            branch: options.createBranch,
+            path: repoPath,
+            type: 'tag',
+            action: 'create_branch'
+          };
+        }
+
+        // Verify checkout was successful
+        const templateInfo = await this.extractTemplateInfo(repoPath, url, {
+          branch: branchExists ? ref : undefined,
+          tag: tagExists ? ref : undefined
+        });
+
+        spinner.succeed(`Successfully checked out ${ref}`);
+        return {
+          success: true,
+          repository: url,
+          reference: ref,
+          path: repoPath,
+          type: branchExists ? 'branch' : 'tag',
+          template: templateInfo,
+          checkedOutAt: new Date().toISOString()
+        };
+
+      } catch (error) {
+        // Clean up on failure
+        await this.gitManager.cleanupRepository(repoPath);
+        throw error;
+      }
+
+    } catch (error) {
+      spinner.fail(`Failed to checkout ${ref}: ${error.message}`);
+
+      if (error instanceof GitTemplateError) {
+        throw error;
+      }
+
+      throw new GitTemplateError(
+        `Failed to checkout reference: ${error.message}`,
+        'checkout_reference',
+        url,
+        error
+      );
+    }
+  }
+
+  /**
+   * Compare two references (branches or tags)
+   * @param {string} url - Git repository URL
+   * @param {string} ref1 - First reference
+   * @param {string} ref2 - Second reference
+   * @returns {Promise<Object>} Comparison result
+   */
+  async compareReferences(url, ref1, ref2) {
+    const spinner = ora(`Comparing ${ref1} and ${ref2} in ${url}`).start();
+
+    try {
+      this.logger.info(`Comparing references: ${ref1} vs ${ref2} in ${url}`);
+
+      // Get information for both references
+      const [ref1Info, ref2Info] = await Promise.all([
+        this.getReferenceInfo(url, ref1),
+        this.getReferenceInfo(url, ref2)
+      ]);
+
+      const comparison = {
+        ref1: ref1Info,
+        ref2: ref2Info,
+        differences: this.calculateReferenceDifferences(ref1Info, ref2Info),
+        canMerge: await this.canMergeReferences(url, ref1, ref2),
+        comparedAt: new Date().toISOString()
+      };
+
+      spinner.succeed(`Comparison completed for ${ref1} and ${ref2}`);
+      return comparison;
+
+    } catch (error) {
+      spinner.fail(`Failed to compare references: ${error.message}`);
+      throw new GitTemplateError(
+        `Failed to compare references: ${error.message}`,
+        'compare_references',
+        url,
+        error
+      );
+    }
+  }
+
+  /**
+   * Get reference information
+   * @private
+   */
+  async getReferenceInfo(url, ref) {
+    try {
+      // Check if it's a branch or tag
+      const branches = await this.getRepositoryBranches(url);
+      const tags = await this.getRepositoryTags(url);
+
+      const branch = branches.find(b => b.name === ref);
+      const tag = tags.find(t => t.name === ref);
+
+      if (branch) {
+        return { ...branch, type: 'branch' };
+      } else if (tag) {
+        return { ...tag, type: 'tag' };
+      } else {
+        throw new Error(`Reference '${ref}' not found`);
+      }
+    } catch (error) {
+      this.logger.warn(`Failed to get reference info for ${ref}: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Calculate differences between references
+   * @private
+   */
+  calculateReferenceDifferences(ref1, ref2) {
+    const differences = [];
+
+    if (ref1.commit !== ref2.commit) {
+      differences.push({
+        type: 'commit',
+        message: 'Different commit hashes'
+      });
+    }
+
+    if (ref1.type !== ref2.type) {
+      differences.push({
+        type: 'reference_type',
+        message: `Different reference types: ${ref1.type} vs ${ref2.type}`
+      });
+    }
+
+    if (ref1.lastModified && ref2.lastModified) {
+      const date1 = new Date(ref1.lastModified);
+      const date2 = new Date(ref2.lastModified);
+      if (date1.getTime() !== date2.getTime()) {
+        differences.push({
+          type: 'timestamp',
+          message: `Different timestamps: ${ref1.lastModified} vs ${ref2.lastModified}`
+        });
+      }
+    }
+
+    return differences;
+  }
+
+  /**
+   * Check if references can be merged
+   * @private
+   */
+  async canMergeReferences(url, ref1, ref2) {
+    try {
+      // This would typically involve checking git merge capability
+      // For now, return a simple heuristic
+      return true;
+    } catch (error) {
+      this.logger.warn(`Failed to check merge capability: ${error.message}`);
+      return false;
     }
   }
 

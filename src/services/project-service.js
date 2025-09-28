@@ -14,6 +14,9 @@ const { promisify } = require('util');
 const ProjectInstance = require('../models/project');
 const { ProjectConfiguration } = require('../models/config');
 const TemplatePackage = require('../models/template');
+const TemplateManager = require('../core/template-manager');
+const NpmService = require('./npm-service');
+const GitService = require('./git-service');
 const {
   validateProjectName,
   validateFilePath,
@@ -179,6 +182,45 @@ class ProjectService {
 
     // Supported template types
     this.supportedTemplateTypes = ['react-next', 'node-api', 'vue-app'];
+
+    // Service integrations
+    this.templateManager = options.templateManager || null;
+    this.npmService = options.npmService || null;
+    this.gitService = options.gitService || null;
+
+    // Initialize services if not provided
+    this.initializeServices();
+  }
+
+  /**
+   * Initialize services if not provided
+   * @private
+   */
+  initializeServices() {
+    // Initialize TemplateManager if not provided
+    if (!this.templateManager) {
+      this.templateManager = new TemplateManager({
+        cacheDir: path.join(this.projectsDir, '.template-cache'),
+        enableCache: true,
+        verbose: this.verbose
+      });
+    }
+
+    // Initialize NpmService if not provided
+    if (!this.npmService) {
+      this.npmService = new NpmService({
+        registry: this.registry.url,
+        authToken: this.registry.authToken,
+        verbose: this.verbose
+      });
+    }
+
+    // Initialize GitService if not provided
+    if (!this.gitService) {
+      this.gitService = new GitService({
+        verbose: this.verbose
+      });
+    }
   }
 
   /**
@@ -359,23 +401,60 @@ class ProjectService {
    */
   async generateProjectFiles(template, config) {
     try {
-      this.log(`Generating files for template: ${template.id}`);
+      this.log(`Generating files for template: ${template.id} (${template.type})`);
 
       // Get template files
       const templateFiles = await this.getTemplateFiles(template);
       const generatedFiles = [];
+      const failedFiles = [];
 
+      // Use TemplateManager if available for enhanced file generation
+      if (this.templateManager) {
+        try {
+          this.log('Using TemplateManager for enhanced file generation');
+          const result = await this.templateManager.generateProjectFiles(template, config, {
+            projectPath: config.projectPath,
+            overwrite: false,
+            verbose: this.verbose
+          });
+
+          if (result && result.success) {
+            this.log(`Generated ${result.files?.length || 0} files via TemplateManager`);
+            return result.files || [];
+          }
+        } catch (error) {
+          this.log(`TemplateManager file generation failed: ${error.message}`, 'warn');
+        }
+      }
+
+      // Fallback to individual file generation
+      this.log('Using fallback file generation');
       for (const templateFile of templateFiles) {
         try {
           const generatedFile = await this.generateFile(templateFile, template, config);
           generatedFiles.push(generatedFile);
         } catch (error) {
+          failedFiles.push({
+            path: templateFile.path,
+            error: error.message
+          });
           this.log(`Failed to generate file ${templateFile.path}: ${error.message}`, 'warn');
           // Continue with other files even if one fails
         }
       }
 
-      this.log(`Generated ${generatedFiles.length} files`);
+      // Log failed files summary
+      if (failedFiles.length > 0) {
+        this.log(`Failed to generate ${failedFiles.length} files`, 'warn');
+        failedFiles.forEach(({ path, error }) => {
+          this.log(`  - ${path}: ${error}`, 'warn');
+        });
+      }
+
+      // Perform post-generation validation
+      await this.validateGeneratedFiles(config.projectPath, templateFiles, generatedFiles);
+
+      this.log(`Successfully generated ${generatedFiles.length} files`);
       return generatedFiles;
 
     } catch (error) {
@@ -384,6 +463,55 @@ class ProjectService {
         'FILE_GENERATION_FAILED',
         { templateId: template.id, error: error.message }
       );
+    }
+  }
+
+  /**
+   * Validate generated files against expected template files
+   * @param {string} projectPath - Project path
+   * @param {Array} expectedFiles - Expected template files
+   * @param {Array} generatedFiles - Generated files
+   * @returns {Promise<void>}
+   * @private
+   */
+  async validateGeneratedFiles(projectPath, expectedFiles, generatedFiles) {
+    try {
+      const generatedPaths = new Set(generatedFiles.map(f => f.path));
+      const expectedPaths = new Set(expectedFiles.map(f => f.path));
+
+      // Check for missing files
+      const missingFiles = Array.from(expectedPaths).filter(path => !generatedPaths.has(path));
+      if (missingFiles.length > 0) {
+        this.log(`Missing ${missingFiles.length} expected files: ${missingFiles.join(', ')}`, 'warn');
+      }
+
+      // Check for extra files
+      const extraFiles = Array.from(generatedPaths).filter(path => !expectedPaths.has(path));
+      if (extraFiles.length > 0) {
+        this.log(`Generated ${extraFiles.length} extra files: ${extraFiles.join(', ')}`, 'info');
+      }
+
+      // Validate file existence on disk
+      const existingFiles = [];
+      for (const file of generatedFiles) {
+        const fullPath = path.join(projectPath, file.path);
+        if (await fs.pathExists(fullPath)) {
+          const stats = await fs.stat(fullPath);
+          existingFiles.push({
+            ...file,
+            size: stats.size,
+            permissions: stats.mode,
+            exists: true
+          });
+        } else {
+          this.log(`File does not exist on disk: ${file.path}`, 'warn');
+        }
+      }
+
+      this.log(`Validated ${existingFiles.length} files exist on disk`);
+
+    } catch (error) {
+      this.log(`File validation failed: ${error.message}`, 'warn');
     }
   }
 
@@ -741,11 +869,97 @@ class ProjectService {
         return this.templateCache.get(cacheKey);
       }
 
-      // In a real implementation, this would fetch from npm registry
-      // For now, we'll simulate template fetching
-      this.log(`Fetching template: ${cacheKey}`);
+      // Use TemplateManager if available
+      if (this.templateManager) {
+        try {
+          this.log(`Fetching template using TemplateManager: ${cacheKey}`);
+          const template = await this.templateManager.getTemplate(templateId, {
+            forceRefresh: false
+          });
 
-      // Simulate template package
+          if (template) {
+            // Cache the template
+            this.templateCache.set(cacheKey, template);
+            this.log(`Template fetched and cached: ${cacheKey}`);
+            return template;
+          }
+        } catch (error) {
+          this.log(`TemplateManager fetch failed, falling back to NpmService: ${error.message}`, 'warn');
+        }
+      }
+
+      // Use NpmService for npm-based templates
+      if (templateId.startsWith('@xagi/') && this.npmService) {
+        try {
+          this.log(`Fetching npm template: ${cacheKey}`);
+          const npmInfo = await this.npmService.getPackageInfo(templateId, version);
+
+          if (npmInfo) {
+            const templateData = {
+              id: templateId,
+              name: npmInfo.name || templateId,
+              version: npmInfo.version || version,
+              description: npmInfo.description || `Template: ${templateId}`,
+              type: this.getTemplateTypeFromId(templateId),
+              author: npmInfo.author || 'XAGI Team',
+              keywords: npmInfo.keywords || ['template', 'ai', 'generator'],
+              dependencies: npmInfo.dependencies || {},
+              devDependencies: npmInfo.devDependencies || {},
+              configSchema: this.getTemplateConfigSchema(templateId),
+              supportedVersions: npmInfo.engines || ['^1.0.0'],
+              createdAt: npmInfo.createdAt || new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+              downloadCount: npmInfo.downloadCount || 0
+            };
+
+            const template = new TemplatePackage(templateData);
+            this.templateCache.set(cacheKey, template);
+            this.log(`Npm template fetched and cached: ${cacheKey}`);
+            return template;
+          }
+        } catch (error) {
+          this.log(`NpmService fetch failed: ${error.message}`, 'warn');
+        }
+      }
+
+      // Use GitService for git-based templates
+      if ((templateId.includes('github.com') || templateId.includes('gitlab.com')) && this.gitService) {
+        try {
+          this.log(`Fetching git template: ${cacheKey}`);
+          const gitInfo = await this.gitService.getGitTemplateInfo(templateId, {
+            branch: version === 'latest' ? undefined : version
+          });
+
+          if (gitInfo) {
+            const templateData = {
+              id: templateId,
+              name: gitInfo.name || templateId,
+              version: gitInfo.version || version,
+              description: gitInfo.description || `Git template: ${templateId}`,
+              type: this.getTemplateTypeFromId(templateId),
+              author: gitInfo.author || 'Unknown',
+              keywords: gitInfo.keywords || ['template', 'git'],
+              dependencies: gitInfo.dependencies || {},
+              devDependencies: gitInfo.devDependencies || {},
+              configSchema: this.getTemplateConfigSchema(templateId),
+              supportedVersions: ['^1.0.0'],
+              createdAt: gitInfo.createdAt || new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+              downloadCount: 0
+            };
+
+            const template = new TemplatePackage(templateData);
+            this.templateCache.set(cacheKey, template);
+            this.log(`Git template fetched and cached: ${cacheKey}`);
+            return template;
+          }
+        } catch (error) {
+          this.log(`GitService fetch failed: ${error.message}`, 'warn');
+        }
+      }
+
+      // Fallback to simulated template if all services fail
+      this.log(`Using fallback template simulation: ${cacheKey}`, 'warn');
       const templateData = {
         id: templateId,
         name: templateId.replace('@xagi/ai-template-', ''),
@@ -764,10 +978,7 @@ class ProjectService {
       };
 
       const template = new TemplatePackage(templateData);
-
-      // Cache the template
       this.templateCache.set(cacheKey, template);
-
       return template;
 
     } catch (error) {
@@ -783,37 +994,56 @@ class ProjectService {
    */
   async getTemplateFiles(template) {
     try {
-      // In a real implementation, this would extract template files
-      // For now, we'll return a mock structure
-      const mockFiles = [
-        { path: 'package.json', type: 'json', template: true },
-        { path: 'README.md', type: 'markdown', template: true },
-        { path: 'src/index.js', type: 'javascript', template: true },
-        { path: '.gitignore', type: 'text', template: true }
-      ];
+      this.log(`Getting template files for: ${template.id} (${template.type})`);
 
-      // Add template-specific files
-      if (template.type === 'react-next') {
-        mockFiles.push(
-          { path: 'pages/index.js', type: 'javascript', template: true },
-          { path: 'components/App.js', type: 'javascript', template: true },
-          { path: 'styles/globals.css', type: 'css', template: true }
-        );
-      } else if (template.type === 'node-api') {
-        mockFiles.push(
-          { path: 'server.js', type: 'javascript', template: true },
-          { path: 'routes/index.js', type: 'javascript', template: true },
-          { path: 'middleware/logger.js', type: 'javascript', template: true }
-        );
-      } else if (template.type === 'vue-app') {
-        mockFiles.push(
-          { path: 'src/App.vue', type: 'vue', template: true },
-          { path: 'src/main.js', type: 'javascript', template: true },
-          { path: 'src/components/HelloWorld.vue', type: 'vue', template: true }
-        );
+      // Try to get template files using TemplateManager first
+      if (this.templateManager) {
+        try {
+          this.log(`Fetching template files using TemplateManager`);
+          const templateFiles = await this.templateManager.getTemplateFiles(template.id, {
+            version: template.version,
+            includeHidden: false
+          });
+
+          if (templateFiles && templateFiles.length > 0) {
+            this.log(`Retrieved ${templateFiles.length} files from TemplateManager`);
+            return templateFiles;
+          }
+        } catch (error) {
+          this.log(`TemplateManager failed to get files: ${error.message}`, 'warn');
+        }
       }
 
-      return mockFiles;
+      // Try to get template files using GitService for git-based templates
+      if (template.id.includes('github.com') || template.id.includes('gitlab.com')) {
+        if (this.gitService) {
+          try {
+            this.log(`Fetching git template files`);
+            const gitFiles = await this.gitService.getRepositoryFiles(template.id, {
+              branch: template.version === 'latest' ? undefined : template.version,
+              includeHidden: false
+            });
+
+            if (gitFiles && gitFiles.length > 0) {
+              this.log(`Retrieved ${gitFiles.length} files from GitService`);
+              return gitFiles.map(file => ({
+                path: file.path,
+                type: this.getFileType(file.path),
+                template: true,
+                size: file.size,
+                permissions: file.permissions,
+                lastModified: file.lastModified
+              }));
+            }
+          } catch (error) {
+            this.log(`GitService failed to get files: ${error.message}`, 'warn');
+          }
+        }
+      }
+
+      // Fallback to template-specific file structure
+      this.log(`Using fallback file structure for template type: ${template.type}`);
+      return this.getFallbackTemplateFiles(template);
 
     } catch (error) {
       throw new ProjectServiceError(
@@ -822,6 +1052,124 @@ class ProjectService {
         { templateId: template.id, error: error.message }
       );
     }
+  }
+
+  /**
+   * Get fallback template files based on template type
+   * @param {TemplatePackage} template - Template package
+   * @returns {Array<Object>} Template files
+   * @private
+   */
+  getFallbackTemplateFiles(template) {
+    const baseFiles = [
+      { path: 'package.json', type: 'json', template: true },
+      { path: 'README.md', type: 'markdown', template: true },
+      { path: '.gitignore', type: 'text', template: true },
+      { path: 'LICENSE', type: 'text', template: true }
+    ];
+
+    // Add template-specific files
+    switch (template.type) {
+      case 'react-next':
+        return [
+          ...baseFiles,
+          { path: 'pages/index.js', type: 'javascript', template: true },
+          { path: 'pages/_app.js', type: 'javascript', template: true },
+          { path: 'components/App.js', type: 'javascript', template: true },
+          { path: 'styles/globals.css', type: 'css', template: true },
+          { path: 'next.config.js', type: 'javascript', template: true },
+          { path: 'public/favicon.ico', type: 'binary', template: true },
+          { path: 'public/vercel.svg', type: 'binary', template: true }
+        ];
+      case 'node-api':
+        return [
+          ...baseFiles,
+          { path: 'server.js', type: 'javascript', template: true },
+          { path: 'routes/index.js', type: 'javascript', template: true },
+          { path: 'routes/users.js', type: 'javascript', template: true },
+          { path: 'middleware/logger.js', type: 'javascript', template: true },
+          { path: 'middleware/auth.js', type: 'javascript', template: true },
+          { path: 'controllers/userController.js', type: 'javascript', template: true },
+          { path: 'models/userModel.js', type: 'javascript', template: true },
+          { path: 'config/database.js', type: 'javascript', template: true },
+          { path: 'tests/user.test.js', type: 'javascript', template: true }
+        ];
+      case 'vue-app':
+        return [
+          ...baseFiles,
+          { path: 'src/App.vue', type: 'vue', template: true },
+          { path: 'src/main.js', type: 'javascript', template: true },
+          { path: 'src/components/HelloWorld.vue', type: 'vue', template: true },
+          { path: 'src/components/TheHeader.vue', type: 'vue', template: true },
+          { path: 'src/assets/logo.png', type: 'binary', template: true },
+          { path: 'src/router/index.js', type: 'javascript', template: true },
+          { path: 'src/store/index.js', type: 'javascript', template: true },
+          { path: 'vue.config.js', type: 'javascript', template: true },
+          { path: 'public/index.html', type: 'html', template: true }
+        ];
+      default:
+        return baseFiles;
+    }
+  }
+
+  /**
+   * Get file type from file path
+   * @param {string} filePath - File path
+   * @returns {string} File type
+   * @private
+   */
+  getFileType(filePath) {
+    const ext = path.extname(filePath).toLowerCase();
+    const typeMap = {
+      '.js': 'javascript',
+      '.ts': 'typescript',
+      '.jsx': 'jsx',
+      '.tsx': 'tsx',
+      '.vue': 'vue',
+      '.json': 'json',
+      '.md': 'markdown',
+      '.css': 'css',
+      '.scss': 'scss',
+      '.sass': 'sass',
+      '.less': 'less',
+      '.html': 'html',
+      '.xml': 'xml',
+      '.yaml': 'yaml',
+      '.yml': 'yaml',
+      '.toml': 'toml',
+      '.ini': 'ini',
+      '.txt': 'text',
+      '.sh': 'shell',
+      '.bat': 'batch',
+      '.ps1': 'powershell',
+      '.py': 'python',
+      '.java': 'java',
+      '.go': 'go',
+      '.rs': 'rust',
+      '.cpp': 'cpp',
+      '.c': 'c',
+      '.h': 'header',
+      '.hpp': 'header',
+      '.php': 'php',
+      '.rb': 'ruby',
+      '.swift': 'swift',
+      '.kt': 'kotlin',
+      '.scala': 'scala',
+      '.dart': 'dart',
+      '.png': 'binary',
+      '.jpg': 'binary',
+      '.jpeg': 'binary',
+      '.gif': 'binary',
+      '.svg': 'binary',
+      '.ico': 'binary',
+      '.pdf': 'binary',
+      '.zip': 'binary',
+      '.tar': 'binary',
+      '.gz': 'binary',
+      '.bz2': 'binary'
+    };
+
+    return typeMap[ext] || 'text';
   }
 
   /**
@@ -970,13 +1318,28 @@ class ProjectService {
         return;
       }
 
-      this.log(`Installing ${Object.keys(allDependencies).length} dependencies`);
+      this.log(`Installing ${Object.keys(allDependencies).length} dependencies for ${template.type}`);
 
-      // Use npm install
-      await execa('npm', ['install'], {
-        cwd: projectPath,
-        stdio: this.verbose ? 'inherit' : 'pipe'
-      });
+      // Use NpmService if available for enhanced dependency management
+      if (this.npmService) {
+        try {
+          this.log('Using NpmService for enhanced dependency installation');
+          await this.npmService.installDependencies(projectPath, {
+            dependencies: template.dependencies,
+            devDependencies: template.devDependencies,
+            templateType: template.type,
+            verbose: this.verbose
+          });
+          this.log('Dependencies installed successfully via NpmService');
+          return;
+        } catch (error) {
+          this.log(`NpmService failed, falling back to npm: ${error.message}`, 'warn');
+        }
+      }
+
+      // Fallback to npm install
+      this.log('Using npm install for dependency installation');
+      await this.performNpmInstall(projectPath, allDependencies);
 
       this.log('Dependencies installed successfully');
 
@@ -984,6 +1347,52 @@ class ProjectService {
       throw new ProjectServiceError(
         `Failed to install dependencies: ${error.message}`,
         'DEPENDENCY_INSTALL_FAILED',
+        { error: error.message }
+      );
+    }
+  }
+
+  /**
+   * Perform npm install with enhanced error handling
+   * @param {string} projectPath - Project path
+   * @param {Object} dependencies - Dependencies to install
+   * @returns {Promise<void>}
+   * @private
+   */
+  async performNpmInstall(projectPath, dependencies) {
+    try {
+      // Check if npm is available
+      await execa('npm', ['--version'], { stdio: 'pipe' });
+
+      // Install dependencies
+      const installArgs = ['install', '--no-audit'];
+
+      // Install all dependencies at once
+      const dependencyArgs = Object.entries(dependencies)
+        .map(([pkg, version]) => `${pkg}@${version}`);
+
+      if (dependencyArgs.length > 0) {
+        await execa('npm', [...installArgs, ...dependencyArgs], {
+          cwd: projectPath,
+          stdio: this.verbose ? 'inherit' : 'pipe'
+        });
+      }
+
+      // Run npm audit fix if available
+      try {
+        await execa('npm', ['audit', 'fix'], {
+          cwd: projectPath,
+          stdio: 'pipe'
+        });
+        this.log('Security audit completed');
+      } catch (auditError) {
+        this.log(`Security audit failed: ${auditError.message}`, 'warn');
+      }
+
+    } catch (error) {
+      throw new ProjectServiceError(
+        `npm install failed: ${error.message}`,
+        'NPM_INSTALL_FAILED',
         { error: error.message }
       );
     }
@@ -1466,7 +1875,7 @@ body {
    */
   generateVueContent(templateFile, template, config) {
     if (templateFile.path === 'src/App.vue') {
-      return `<template>
+      return String.raw`<template>
   <div id="app">
     <div class="container">
       <header class="header">
@@ -1667,6 +2076,158 @@ typings/
   }
 
   /**
+   * Get service health status
+   * @returns {Promise<Object>} Health status
+   */
+  async getHealthStatus() {
+    try {
+      const services = {
+        templateManager: null,
+        npmService: null,
+        gitService: null,
+        filesystem: null,
+        npm: null
+      };
+
+      // Check TemplateManager
+      if (this.templateManager) {
+        try {
+          services.templateManager = await this.checkTemplateManagerHealth();
+        } catch (error) {
+          services.templateManager = { error: error.message };
+        }
+      }
+
+      // Check NpmService
+      if (this.npmService) {
+        try {
+          services.npmService = await this.checkNpmServiceHealth();
+        } catch (error) {
+          services.npmService = { error: error.message };
+        }
+      }
+
+      // Check GitService
+      if (this.gitService) {
+        try {
+          services.gitService = await this.checkGitServiceHealth();
+        } catch (error) {
+          services.gitService = { error: error.message };
+        }
+      }
+
+      // Check filesystem access
+      try {
+        await fs.ensureDir(this.projectsDir);
+        await fs.ensureDir(this.templatesDir);
+        services.filesystem = { status: 'healthy', accessible: true };
+      } catch (error) {
+        services.filesystem = { status: 'error', error: error.message };
+      }
+
+      // Check npm availability
+      try {
+        const npmVersion = await execa('npm', ['--version'], { stdio: 'pipe' });
+        services.npm = { status: 'healthy', version: npmVersion.stdout.trim() };
+      } catch (error) {
+        services.npm = { status: 'error', error: error.message };
+      }
+
+      return {
+        status: 'healthy',
+        timestamp: new Date().toISOString(),
+        services
+      };
+    } catch (error) {
+      return {
+        status: 'error',
+        timestamp: new Date().toISOString(),
+        error: error.message
+      };
+    }
+  }
+
+  /**
+   * Check TemplateManager health
+   * @returns {Promise<Object>} Health status
+   * @private
+   */
+  async checkTemplateManagerHealth() {
+    try {
+      // Test template listing
+      const templates = await this.templateManager.listTemplates();
+      return {
+        status: 'healthy',
+        templateCount: templates.length,
+        cacheEnabled: this.templateManager.enableCache,
+        cacheDir: this.templateManager.cacheDir
+      };
+    } catch (error) {
+      return { status: 'error', error: error.message };
+    }
+  }
+
+  /**
+   * Check NpmService health
+   * @returns {Promise<Object>} Health status
+   * @private
+   */
+  async checkNpmServiceHealth() {
+    try {
+      // Test npm registry connectivity
+      const testPackage = await this.npmService.getPackageInfo('npm', 'latest');
+      return {
+        status: 'healthy',
+        registry: this.npmService._registryUrl,
+        authenticated: !!this.npmService._authToken,
+        lastCheck: new Date().toISOString()
+      };
+    } catch (error) {
+      return { status: 'error', error: error.message };
+    }
+  }
+
+  /**
+   * Check GitService health
+   * @returns {Promise<Object>} Health status
+   * @private
+   */
+  async checkGitServiceHealth() {
+    try {
+      // Test git availability
+      const gitVersion = await execa('git', ['--version'], { stdio: 'pipe' });
+      return {
+        status: 'healthy',
+        gitVersion: gitVersion.stdout.trim(),
+        available: true
+      };
+    } catch (error) {
+      return { status: 'error', error: error.message };
+    }
+  }
+
+  /**
+   * Get template compatibility matrix
+   * @returns {Object} Compatibility matrix
+   */
+  getTemplateCompatibility() {
+    return {
+      supportedTemplateTypes: this.supportedTemplateTypes,
+      supportedFileTypes: [
+        'javascript', 'typescript', 'jsx', 'tsx', 'vue', 'json',
+        'markdown', 'css', 'scss', 'html', 'xml', 'yaml', 'text',
+        'binary', 'shell', 'python', 'java', 'go', 'rust'
+      ],
+      dependencyManagers: ['npm', 'yarn', 'pnpm'],
+      gitProviders: ['github.com', 'gitlab.com', 'bitbucket.org'],
+      npmRegistries: [
+        'registry.npmjs.org',
+        'private registries via .npmrc'
+      ]
+    };
+  }
+
+  /**
    * Get service statistics
    * @returns {Object} Service statistics
    */
@@ -1677,7 +2238,12 @@ typings/
       projectsDir: this.projectsDir,
       templatesDir: this.templatesDir,
       registry: this.registry,
-      verbose: this.verbose
+      verbose: this.verbose,
+      services: {
+        templateManager: !!this.templateManager,
+        npmService: !!this.npmService,
+        gitService: !!this.gitService
+      }
     };
   }
 }

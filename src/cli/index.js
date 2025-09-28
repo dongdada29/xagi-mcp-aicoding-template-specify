@@ -15,6 +15,8 @@ const createCommand = require('./commands/create');
 const infoCommand = require('./commands/info');
 const cacheCommand = require('./commands/cache');
 const configCommand = require('./commands/config');
+const validateCommand = require('./commands/validate');
+const registryCommand = require('./commands/registry');
 
 // CLI Configuration
 program
@@ -31,6 +33,12 @@ ${chalk.bold('Examples:')}
   ${chalk.green('create-ai-project create @xagi/ai-template-react-next-app')}  Create React Next.js project
   ${chalk.green('create-ai-project info @xagi/ai-template-react-next-app')}     Show template details
   ${chalk.green('create-ai-project cache clear')}                      Clear template cache
+  ${chalk.green('create-ai-project validate template <id>')}           Validate template from registry
+  ${chalk.green('create-ai-project validate local <path>')}           Validate template from local directory
+  ${chalk.green('create-ai-project registry add')}                     Add private registry interactively
+  ${chalk.green('create-ai-project registry list')}                    List private registries
+  ${chalk.green('create-ai-project registry test <id>')}              Test registry connectivity
+  ${chalk.green('create-ai-project registry search <id> <query>')}    Search packages in registry
 
 ${chalk.bold('Documentation:')}
   ${chalk.blue('https://github.com/xagi/create-ai-project')}
@@ -50,6 +58,8 @@ program.addCommand(createCommand);
 program.addCommand(infoCommand);
 program.addCommand(cacheCommand);
 program.addCommand(configCommand);
+program.addCommand(validateCommand);
+program.addCommand(registryCommand);
 
 // Error handling
 program.exitOverride();
