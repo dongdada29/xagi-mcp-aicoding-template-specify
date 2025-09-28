@@ -9,14 +9,51 @@ const { program } = require('commander');
 const chalk = require('chalk');
 const packageJson = require('../../package.json');
 
-// Import CLI commands
-const listCommand = require('./commands/list');
-const createCommand = require('./commands/create');
-const infoCommand = require('./commands/info');
-const cacheCommand = require('./commands/cache');
-const configCommand = require('./commands/config');
-const validateCommand = require('./commands/validate');
-const registryCommand = require('./commands/registry');
+// Performance and memory monitoring
+const { PerformanceMonitor } = require('../utils/performance');
+const { MemoryMonitor } = require('../utils/memory');
+
+const monitor = PerformanceMonitor.enableCLIMonitoring();
+const memoryMonitor = new MemoryMonitor({
+  warning: 30 * 1024 * 1024, // 30MB warning
+  critical: 50 * 1024 * 1024, // 50MB critical
+  cleanup: 40 * 1024 * 1024 // 40MB cleanup
+});
+
+// Lazy load CLI commands for better performance
+const getCommand = (commandName) => {
+  switch (commandName) {
+    case 'list':
+      return require('./commands/list');
+    case 'create':
+      return require('./commands/create');
+    case 'info':
+      return require('./commands/info');
+    case 'cache':
+      return require('./commands/cache');
+    case 'config':
+      return require('./commands/config');
+    case 'validate':
+      return require('./commands/validate');
+    case 'registry':
+      return require('./commands/registry');
+    default:
+      throw new Error(`Unknown command: ${commandName}`);
+  }
+};
+
+// Command loader function
+const loadCommands = () => {
+  return [
+    getCommand('list'),
+    getCommand('create'),
+    getCommand('info'),
+    getCommand('cache'),
+    getCommand('config'),
+    getCommand('validate'),
+    getCommand('registry')
+  ];
+};
 
 // CLI Configuration
 program
@@ -52,14 +89,11 @@ program
   .option('--config <path>', 'Path to configuration file')
   .option('--dry-run', 'Preview operations without making changes');
 
-// Add commands
-program.addCommand(listCommand);
-program.addCommand(createCommand);
-program.addCommand(infoCommand);
-program.addCommand(cacheCommand);
-program.addCommand(configCommand);
-program.addCommand(validateCommand);
-program.addCommand(registryCommand);
+// Add commands (lazy loaded)
+const commands = loadCommands();
+commands.forEach(command => {
+  program.addCommand(command);
+});
 
 // Error handling
 program.exitOverride();
@@ -75,19 +109,49 @@ process.on('unhandledRejection', (error) => {
 process.on('uncaughtException', (error) => {
   console.error(chalk.red('Uncaught Exception:'));
   console.error(error);
+
+  // Check memory usage on errors
+  const memStatus = memoryMonitor.checkThresholds();
+  if (memStatus.level !== 'normal') {
+    console.warn(chalk.yellow(`Memory usage ${memStatus.current} (${memStatus.level})`));
+  }
+
   process.exit(1);
 });
+
+// Memory monitoring
+if (process.env.DEBUG_MEMORY) {
+  setInterval(() => {
+    const memStatus = memoryMonitor.checkThresholds();
+    if (memStatus.level !== 'normal') {
+      console.warn(chalk.yellow(`Memory warning: ${memStatus.current} (${memStatus.level})`));
+
+      if (memStatus.shouldCleanup) {
+        console.warn(chalk.yellow('Performing memory cleanup...'));
+        if (memoryMonitor.forceGarbageCollection()) {
+          console.log(chalk.green('Garbage collection completed'));
+        }
+      }
+    }
+  }, 5000); // Check every 5 seconds
+}
 
 // Parse command line arguments
 if (process.argv.length === 2) {
   // No arguments provided, show help
   program.help();
 } else {
+  const endStartup = monitor.measure('cli_startup');
+
   try {
+    const startParse = monitor.measure('cli_parse');
     program.parse(process.argv);
+    startParse();
   } catch (error) {
     console.error(chalk.red('Error:'), error.message);
     process.exit(1);
+  } finally {
+    endStartup();
   }
 }
 
