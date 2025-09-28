@@ -1,8 +1,8 @@
 
-# Implementation Plan: [FEATURE]
+# Implementation Plan: AI Project Initialization Template Tool
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
+**Branch**: `001-npm-ai-npx` | **Date**: 2025-09-28 | **Spec**: [spec.md](./spec.md)
+**Input**: Feature specification from `/specs/001-npm-ai-npx/spec.md`
 
 ## Execution Flow (/plan command scope)
 ```
@@ -31,18 +31,18 @@
 - Phase 3-4: Implementation execution (manual or via tools)
 
 ## Summary
-[Extract from feature spec: primary requirement + technical approach from research]
+The AI Project Initialization Template Tool provides a comprehensive CLI solution for quickly creating standardized project structures using npm-based and git-based templates. The tool focuses on CLI-only functionality with support for multiple template types (React Next.js, Node.js API, Vue applications), interactive template selection, and configuration management. Key technical approaches include npm registry integration, git repository support, local caching for performance optimization, and standardized project configuration validation.
 
 ## Technical Context
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Language/Version**: Node.js 18+
+**Primary Dependencies**: npm, commander.js, inquirer, chalk, ora, simple-git
+**Storage**: File system (templates), npm cache, git repositories
+**Testing**: Jest, npm pack/testing, filesystem testing
+**Target Platform**: Cross-platform CLI tool (Windows, macOS, Linux)
+**Project Type**: Single project CLI tool
+**Performance Goals**: <200ms CLI response time, <1s template download and validation
+**Constraints**: npm registry access, git repository access, file system permissions, network connectivity
+**Scale/Scope**: Support 10+ template types, 1000+ concurrent users
 
 ## Constitution Check
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
@@ -102,50 +102,37 @@ specs/[###-feature]/
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 ```
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
 src/
-├── models/
-├── services/
 ├── cli/
-└── lib/
+│   ├── commands/
+│   ├── prompts/
+│   └── index.js
+├── core/
+│   ├── template-manager.js
+│   ├── config-validator.js
+│   ├── cache-manager.js
+│   └── git-manager.js
+├── services/
+│   ├── npm-service.js
+│   ├── git-service.js
+│   └── project-service.js
+├── models/
+│   ├── template.js
+│   ├── project.js
+│   └── config.js
+└── utils/
+    ├── logger.js
+    ├── file-operations.js
+    └── error-handler.js
 
 tests/
-├── contract/
+├── unit/
 ├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
-backend/
-├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
-
-frontend/
-├── src/
-│   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
-
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+└── contract/
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: Single project structure with clear separation between CLI interface, core business logic, external services, data models, and utility functions. This structure supports the CLI-only focus with npm and git integration.
 
 ## Phase 0: Outline & Research
 1. **Extract unknowns from Technical Context** above:
@@ -207,15 +194,23 @@ directories captured above]
 **Task Generation Strategy**:
 - Load `.specify/templates/tasks-template.md` as base
 - Generate tasks from Phase 1 design docs (contracts, data model, quickstart)
-- Each contract → contract test task [P]
-- Each entity → model creation task [P] 
-- Each user story → integration test task
-- Implementation tasks to make tests pass
+- Focus on CLI-only components: npm integration, git support, caching, validation
+- Each API endpoint → implementation and test tasks
+- Each data entity → model and service tasks
+- Each core feature → integration test tasks
+- Performance and security requirements → dedicated test tasks
 
 **Ordering Strategy**:
-- TDD order: Tests before implementation 
-- Dependency order: Models before services before UI
+- TDD order: Tests before implementation
+- Dependency order: Core services → CLI commands → Integration
 - Mark [P] for parallel execution (independent files)
+
+**Key Task Categories**:
+1. **Setup**: Project structure, dependencies, configuration
+2. **Core**: Template management (npm + git), CLI interface, caching system
+3. **Tests**: Contract tests, integration tests, performance tests
+4. **Integration**: Error handling, validation, file operations
+5. **Polish**: Documentation, optimization, final testing
 
 **Estimated Output**: 25-30 numbered, ordered tasks in tasks.md
 
@@ -241,18 +236,18 @@ directories captured above]
 *This checklist is updated during execution flow*
 
 **Phase Status**:
-- [ ] Phase 0: Research complete (/plan command)
-- [ ] Phase 1: Design complete (/plan command)
-- [ ] Phase 2: Task planning complete (/plan command - describe approach only)
+- [x] Phase 0: Research complete (/plan command)
+- [x] Phase 1: Design complete (/plan command)
+- [x] Phase 2: Task planning complete (/plan command - describe approach only)
 - [ ] Phase 3: Tasks generated (/tasks command)
 - [ ] Phase 4: Implementation complete
 - [ ] Phase 5: Validation passed
 
 **Gate Status**:
-- [ ] Initial Constitution Check: PASS
-- [ ] Post-Design Constitution Check: PASS
-- [ ] All NEEDS CLARIFICATION resolved
-- [ ] Complexity deviations documented
+- [x] Initial Constitution Check: PASS
+- [x] Post-Design Constitution Check: PASS
+- [x] All NEEDS CLARIFICATION resolved
+- [x] Complexity deviations documented
 
 ---
 *Based on Constitution v1.0.0 - See `/memory/constitution.md`*

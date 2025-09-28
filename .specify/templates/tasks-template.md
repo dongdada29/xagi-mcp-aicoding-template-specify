@@ -53,42 +53,46 @@
 - [ ] T005 [P] Contract test GET /api/users/{id} in tests/contract/test_users_get.py
 - [ ] T006 [P] Integration test user registration in tests/integration/test_registration.py
 - [ ] T007 [P] Integration test auth flow in tests/integration/test_auth.py
+- [ ] T008 [P] Performance test response time < 200ms in tests/performance/test_response_time.py
+- [ ] T009 [P] Security test input validation in tests/security/test_input_validation.py
 
 ## Phase 3.3: Core Implementation (ONLY after tests are failing)
-- [ ] T008 [P] User model in src/models/user.py
-- [ ] T009 [P] UserService CRUD in src/services/user_service.py
-- [ ] T010 [P] CLI --create-user in src/cli/user_commands.py
-- [ ] T011 POST /api/users endpoint
-- [ ] T012 GET /api/users/{id} endpoint
-- [ ] T013 Input validation
-- [ ] T014 Error handling and logging
+- [ ] T010 [P] User model in src/models/user.py
+- [ ] T011 [P] UserService CRUD in src/services/user_service.py
+- [ ] T012 [P] CLI --create-user in src/cli/user_commands.py
+- [ ] T013 POST /api/users endpoint
+- [ ] T014 GET /api/users/{id} endpoint
+- [ ] T015 Input validation
+- [ ] T016 Error handling and logging
 
 ## Phase 3.4: Integration
-- [ ] T015 Connect UserService to DB
-- [ ] T016 Auth middleware
-- [ ] T017 Request/response logging
-- [ ] T018 CORS and security headers
+- [ ] T017 Connect UserService to DB
+- [ ] T018 Auth middleware
+- [ ] T019 Request/response logging
+- [ ] T020 CORS and security headers
 
 ## Phase 3.5: Polish
-- [ ] T019 [P] Unit tests for validation in tests/unit/test_validation.py
-- [ ] T020 Performance tests (<200ms)
-- [ ] T021 [P] Update docs/api.md
-- [ ] T022 Remove duplication
-- [ ] T023 Run manual-testing.md
+- [ ] T021 [P] Unit tests for validation in tests/unit/test_validation.py
+- [ ] T022 Performance optimization (ensure <200ms response)
+- [ ] T023 [P] Update docs/api.md
+- [ ] T024 Remove duplication
+- [ ] T025 Run manual-testing.md
 
 ## Dependencies
-- Tests (T004-T007) before implementation (T008-T014)
-- T008 blocks T009, T015
-- T016 blocks T018
-- Implementation before polish (T019-T023)
+- Tests (T004-T009) before implementation (T010-T016)
+- T010 blocks T011, T017
+- T018 blocks T020
+- Implementation before polish (T021-T025)
 
 ## Parallel Example
 ```
-# Launch T004-T007 together:
+# Launch T004-T009 together:
 Task: "Contract test POST /api/users in tests/contract/test_users_post.py"
 Task: "Contract test GET /api/users/{id} in tests/contract/test_users_get.py"
 Task: "Integration test registration in tests/integration/test_registration.py"
 Task: "Integration test auth in tests/integration/test_auth.py"
+Task: "Performance test response time < 200ms in tests/performance/test_response_time.py"
+Task: "Security test input validation in tests/security/test_input_validation.py"
 ```
 
 ## Notes

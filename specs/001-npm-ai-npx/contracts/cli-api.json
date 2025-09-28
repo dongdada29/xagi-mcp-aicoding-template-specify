@@ -1,0 +1,476 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "AI Project Initialization Template Tool CLI API",
+    "description": "Internal API contracts for CLI operations and MCP server communication",
+    "version": "1.0.0",
+    "contact": {
+      "name": "XAGI Team",
+      "email": "team@xagi.ai"
+    }
+  },
+  "paths": {
+    "/templates": {
+      "get": {
+        "summary": "List available templates",
+        "description": "Retrieve a list of available project templates from configured registries",
+        "operationId": "listTemplates",
+        "parameters": [
+          {
+            "name": "registry",
+            "in": "query",
+            "description": "Filter templates by registry",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "description": "Filter templates by type",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["react-next", "node-api", "vue-app", "mcp-server"]
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Search templates by name or keywords",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "templates": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Template"
+                      }
+                    },
+                    "totalCount": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request parameters"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/templates/{templateId}": {
+      "get": {
+        "summary": "Get template details",
+        "description": "Retrieve detailed information about a specific template",
+        "operationId": "getTemplate",
+        "parameters": [
+          {
+            "name": "templateId",
+            "in": "path",
+            "description": "Template identifier (npm package name)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "version",
+            "in": "query",
+            "description": "Specific version to retrieve",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Template"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Template not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      },
+      "post": {
+        "summary": "Validate template configuration",
+        "description": "Validate project configuration against template schema",
+        "operationId": "validateTemplateConfig",
+        "parameters": [
+          {
+            "name": "templateId",
+            "in": "path",
+            "description": "Template identifier (npm package name)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectConfig"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Configuration is valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "valid": {
+                      "type": "boolean"
+                    },
+                    "errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid configuration"
+          },
+          "404": {
+            "description": "Template not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/projects": {
+      "post": {
+        "summary": "Create new project",
+        "description": "Create a new project using specified template and configuration",
+        "operationId": "createProject",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProjectRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Project created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectInstance"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request parameters"
+          },
+          "409": {
+            "description": "Project already exists at target location"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/projects/{projectId}": {
+      "get": {
+        "summary": "Get project status",
+        "description": "Retrieve status and information about a created project",
+        "operationId": "getProjectStatus",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "Project identifier",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectInstance"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/cache": {
+      "post": {
+        "summary": "Clear template cache",
+        "description": "Clear the local template cache",
+        "operationId": "clearCache",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "templateId": {
+                    "type": "string",
+                    "description": "Specific template to clear from cache"
+                  },
+                  "version": {
+                    "type": "string",
+                    "description": "Specific version to clear from cache"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Cache cleared successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "clearedEntries": {
+                      "type": "integer"
+                    },
+                    "freedSpace": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Template": {
+        "type": "object",
+        "required": ["id", "name", "version", "type", "description"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Template npm package name"
+          },
+          "name": {
+            "type": "string",
+            "description": "Human-readable template name"
+          },
+          "version": {
+            "type": "string",
+            "description": "Latest available version"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["react-next", "node-api", "vue-app", "mcp-server"],
+            "description": "Template type"
+          },
+          "description": {
+            "type": "string",
+            "description": "Template description"
+          },
+          "author": {
+            "type": "string",
+            "description": "Template author"
+          },
+          "keywords": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Search keywords"
+          },
+          "registry": {
+            "type": "string",
+            "description": "Source registry"
+          },
+          "downloadCount": {
+            "type": "integer",
+            "description": "Number of downloads"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Creation timestamp"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Last update timestamp"
+          }
+        }
+      },
+      "ProjectConfig": {
+        "type": "object",
+        "required": ["projectName", "projectPath"],
+        "properties": {
+          "projectName": {
+            "type": "string",
+            "description": "Name of the project"
+          },
+          "projectPath": {
+            "type": "string",
+            "description": "Target directory path"
+          },
+          "configValues": {
+            "type": "object",
+            "description": "Template-specific configuration values"
+          },
+          "registry": {
+            "type": "string",
+            "description": "npm registry to use"
+          },
+          "authToken": {
+            "type": "string",
+            "description": "Authentication token for private registries"
+          }
+        }
+      },
+      "CreateProjectRequest": {
+        "type": "object",
+        "required": ["templateId", "config"],
+        "properties": {
+          "templateId": {
+            "type": "string",
+            "description": "Template identifier"
+          },
+          "templateVersion": {
+            "type": "string",
+            "description": "Specific template version to use"
+          },
+          "config": {
+            "$ref": "#/components/schemas/ProjectConfig"
+          },
+          "dryRun": {
+            "type": "boolean",
+            "description": "Validate without creating files",
+            "default": false
+          }
+        }
+      },
+      "ProjectInstance": {
+        "type": "object",
+        "required": ["id", "projectName", "projectPath", "templateId", "status"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Project instance identifier"
+          },
+          "projectName": {
+            "type": "string",
+            "description": "Project name"
+          },
+          "projectPath": {
+            "type": "string",
+            "description": "Project file system path"
+          },
+          "templateId": {
+            "type": "string",
+            "description": "Template used for creation"
+          },
+          "templateVersion": {
+            "type": "string",
+            "description": "Template version used"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["creating", "created", "failed"],
+            "description": "Project creation status"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Creation timestamp"
+          },
+          "lastModified": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Last modification timestamp"
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List of created files"
+          },
+          "error": {
+            "type": "string",
+            "description": "Error message if failed"
+          }
+        }
+      }
+    }
+  }
+}
