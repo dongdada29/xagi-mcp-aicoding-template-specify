@@ -22,7 +22,7 @@ describe('CacheStore Model', () => {
     });
   });
 
-  afterEach(async () => {
+  afterEach(async() => {
     await fs.remove(tempDir);
   });
 
@@ -81,7 +81,7 @@ describe('CacheStore Model', () => {
   });
 
   describe('validate', () => {
-    test('should validate existing cache directory', async () => {
+    test('should validate existing cache directory', async() => {
       // Create test files
       await fs.ensureDir(tempDir);
       await fs.writeFile(path.join(tempDir, 'test.txt'), 'Hello World');
@@ -91,14 +91,14 @@ describe('CacheStore Model', () => {
       expect(cacheStore.isValid).toBe(true);
     });
 
-    test('should fail validation if path does not exist', async () => {
+    test('should fail validation if path does not exist', async() => {
       cacheStore.path = '/nonexistent/path';
 
       await expect(cacheStore.validate()).rejects.toThrow('Cache path does not exist');
       expect(cacheStore.isValid).toBe(false);
     });
 
-    test('should fail validation if path is not a directory', async () => {
+    test('should fail validation if path is not a directory', async() => {
       const tempFile = path.join(tempDir, 'test-file.txt');
       await fs.ensureDir(tempDir);
       await fs.writeFile(tempFile, 'test content');
@@ -110,7 +110,7 @@ describe('CacheStore Model', () => {
   });
 
   describe('touch', () => {
-    test('should update lastAccessed timestamp and increment accessCount', async () => {
+    test('should update lastAccessed timestamp and increment accessCount', async() => {
       const originalAccessCount = cacheStore.accessCount;
       const originalLastAccessed = new Date(cacheStore.lastAccessed);
 
@@ -143,13 +143,13 @@ describe('CacheStore Model', () => {
   });
 
   describe('getSize', () => {
-    test('should return size if already set', async () => {
+    test('should return size if already set', async() => {
       cacheStore.size = 1024;
       const size = await cacheStore.getSize();
       expect(size).toBe(1024);
     });
 
-    test('should calculate size if not set', async () => {
+    test('should calculate size if not set', async() => {
       // Create test files
       await fs.ensureDir(tempDir);
       await fs.writeFile(path.join(tempDir, 'file1.txt'), 'Hello'); // 5 bytes
@@ -162,7 +162,7 @@ describe('CacheStore Model', () => {
   });
 
   describe('remove', () => {
-    test('should remove cache directory', async () => {
+    test('should remove cache directory', async() => {
       // Create test directory
       await fs.ensureDir(tempDir);
       await fs.writeFile(path.join(tempDir, 'test.txt'), 'Hello World');
@@ -175,7 +175,7 @@ describe('CacheStore Model', () => {
       expect(cacheStore.isValid).toBe(false);
     });
 
-    test('should throw error if path is invalid', async () => {
+    test('should throw error if path is invalid', async() => {
       cacheStore.path = '/etc/passwd'; // Security-sensitive path
 
       await expect(cacheStore.remove()).rejects.toThrow('Cannot remove cache entry - path is in system directory');
@@ -261,7 +261,7 @@ describe('CacheStore Model', () => {
   });
 
   describe('Checksum Validation', () => {
-    test('should calculate checksum for cache directory', async () => {
+    test('should calculate checksum for cache directory', async() => {
       // Create test files
       await fs.ensureDir(tempDir);
       await fs.writeFile(path.join(tempDir, 'file1.txt'), 'Hello World');
@@ -276,7 +276,7 @@ describe('CacheStore Model', () => {
       expect(cacheStore.checksum.length).toBe(64); // SHA-256 produces 64 character hex string
     });
 
-    test('should fail validation if checksum does not match', async () => {
+    test('should fail validation if checksum does not match', async() => {
       // Create test files
       await fs.ensureDir(tempDir);
       await fs.writeFile(path.join(tempDir, 'test.txt'), 'Hello World');

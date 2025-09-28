@@ -39,7 +39,7 @@ describe('GET /registries', () => {
     jest.clearAllMocks();
   });
 
-  test('should return 200 status code', async () => {
+  test('should return 200 status code', async() => {
     const response = await request(app)
       .get('/api/registries')
       .expect('Content-Type', /json/);
@@ -47,7 +47,7 @@ describe('GET /registries', () => {
     expect(response.status).toBe(200);
   });
 
-  test('should return array of configured registries', async () => {
+  test('should return array of configured registries', async() => {
     const response = await request(app)
       .get('/api/registries')
       .expect('Content-Type', /json/);
@@ -57,7 +57,7 @@ describe('GET /registries', () => {
     expect(response.body.length).toBeGreaterThan(0);
   });
 
-  test('should return registry metadata with url, type, and status', async () => {
+  test('should return registry metadata with url, type, and status', async() => {
     const response = await request(app)
       .get('/api/registries')
       .expect('Content-Type', /json/);
@@ -76,7 +76,7 @@ describe('GET /registries', () => {
     }
   });
 
-  test('should support filtering by registry type', async () => {
+  test('should support filtering by registry type', async() => {
     const response = await request(app)
       .get('/api/registries?type=npm')
       .expect('Content-Type', /json/);
@@ -90,7 +90,7 @@ describe('GET /registries', () => {
     });
   });
 
-  test('should return empty array when filtering by non-existent type', async () => {
+  test('should return empty array when filtering by non-existent type', async() => {
     const response = await request(app)
       .get('/api/registries?type=nonexistent')
       .expect('Content-Type', /json/);
@@ -100,7 +100,7 @@ describe('GET /registries', () => {
     expect(response.body.length).toBe(0);
   });
 
-  test('should return proper JSON format with valid structure', async () => {
+  test('should return proper JSON format with valid structure', async() => {
     const response = await request(app)
       .get('/api/registries')
       .expect('Content-Type', /json/);
@@ -127,7 +127,7 @@ describe('GET /registries', () => {
     });
   });
 
-  test('should handle invalid type parameter gracefully', async () => {
+  test('should handle invalid type parameter gracefully', async() => {
     const response = await request(app)
       .get('/api/registries?type=')
       .expect('Content-Type', /json/);
@@ -136,7 +136,7 @@ describe('GET /registries', () => {
     expect(Array.isArray(response.body)).toBe(true);
   });
 
-  test('should be case-insensitive for type filtering', async () => {
+  test('should be case-insensitive for type filtering', async() => {
     const response = await request(app)
       .get('/api/registries?type=NPM')
       .expect('Content-Type', /json/);

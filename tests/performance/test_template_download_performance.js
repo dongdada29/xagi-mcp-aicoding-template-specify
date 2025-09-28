@@ -27,13 +27,13 @@ const {
 
 // Performance thresholds (in milliseconds)
 const PERFORMANCE_THRESHOLDS = {
-  CACHED_TEMPLATE_DOWNLOAD: 1000,    // 1 second for cached templates
-  NEW_TEMPLATE_DOWNLOAD: 5000,       // 5 seconds for new templates
-  TEMPLATE_VALIDATION: 500,          // 500ms for validation
-  GIT_CLONING_SMALL_REPO: 3000,      // 3 seconds for small repositories
-  TEMPLATE_PROCESSING: 500,          // 500ms for template processing
-  NETWORK_TIMEOUT: 5000,             // 5 seconds for network timeout
-  CONCURRENT_OPERATION_MARGIN: 1000  // 1 second margin for concurrent operations
+  CACHED_TEMPLATE_DOWNLOAD: 1000, // 1 second for cached templates
+  NEW_TEMPLATE_DOWNLOAD: 5000, // 5 seconds for new templates
+  TEMPLATE_VALIDATION: 500, // 500ms for validation
+  GIT_CLONING_SMALL_REPO: 3000, // 3 seconds for small repositories
+  TEMPLATE_PROCESSING: 500, // 500ms for template processing
+  NETWORK_TIMEOUT: 5000, // 5 seconds for network timeout
+  CONCURRENT_OPERATION_MARGIN: 1000 // 1 second margin for concurrent operations
 };
 
 // Mock data
@@ -42,19 +42,19 @@ const MOCK_TEMPLATES = {
     id: '@xagi/ai-template-react-next-app@1.0.0',
     name: 'React Next.js AI Project Template',
     size: 2048,
-    downloadTime: 100  // Simulated cached download time
+    downloadTime: 100 // Simulated cached download time
   },
   new: {
     id: '@xagi/ai-template-vue-nuxt-app@1.0.0',
     name: 'Vue Nuxt.js AI Project Template',
     size: 2560,
-    downloadTime: 2000  // Simulated new download time
+    downloadTime: 2000 // Simulated new download time
   },
   large: {
     id: '@xagi/ai-template-fullstack-app@1.0.0',
     name: 'Full Stack AI Project Template',
     size: 5120,
-    downloadTime: 3500  // Simulated large download time
+    downloadTime: 3500 // Simulated large download time
   }
 };
 
@@ -79,7 +79,7 @@ describe('Template Download and Validation Performance Tests', () => {
   let memoryFS;
   let performanceMetrics;
 
-  beforeAll(async () => {
+  beforeAll(async() => {
     // Create test directories
     testCacheDir = path.join(os.tmpdir(), `xagi-perf-test-${Date.now()}`);
     testTempDir = path.join(os.tmpdir(), `xagi-perf-temp-${Date.now()}`);
@@ -94,13 +94,13 @@ describe('Template Download and Validation Performance Tests', () => {
     await setupMockCache();
   });
 
-  afterAll(async () => {
+  afterAll(async() => {
     // Clean up test directories
     await fs.remove(testCacheDir);
     await fs.remove(testTempDir);
   });
 
-  beforeEach(async () => {
+  beforeEach(async() => {
     // Reset performance metrics
     performanceMetrics = {
       downloads: [],
@@ -117,7 +117,7 @@ describe('Template Download and Validation Performance Tests', () => {
   });
 
   describe('1. Template Package Download Performance', () => {
-    test('Cached template download completes in under 1s', async () => {
+    test('Cached template download completes in under 1s', async() => {
       const template = MOCK_TEMPLATES.cached;
       const startTime = performance.now();
 
@@ -144,7 +144,7 @@ describe('Template Download and Validation Performance Tests', () => {
       console.log(`Cached template download: ${duration.toFixed(2)}ms (threshold: ${PERFORMANCE_THRESHOLDS.CACHED_TEMPLATE_DOWNLOAD}ms)`);
     });
 
-    test('New template download completes in under 5s', async () => {
+    test('New template download completes in under 5s', async() => {
       const template = MOCK_TEMPLATES.new;
       const startTime = performance.now();
 
@@ -171,7 +171,7 @@ describe('Template Download and Validation Performance Tests', () => {
       console.log(`New template download: ${duration.toFixed(2)}ms (threshold: ${PERFORMANCE_THRESHOLDS.NEW_TEMPLATE_DOWNLOAD}ms)`);
     });
 
-    test('Download performance is consistent across multiple attempts', async () => {
+    test('Download performance is consistent across multiple attempts', async() => {
       const template = MOCK_TEMPLATES.cached;
       const attempts = 5;
       const durations = [];
@@ -197,7 +197,7 @@ describe('Template Download and Validation Performance Tests', () => {
   });
 
   describe('2. Template Validation Performance', () => {
-    test('Template validation completes in under 500ms', async () => {
+    test('Template validation completes in under 500ms', async() => {
       const template = MOCK_TEMPLATES.cached;
       const startTime = performance.now();
 
@@ -222,7 +222,7 @@ describe('Template Download and Validation Performance Tests', () => {
       console.log(`Template validation: ${duration.toFixed(2)}ms (threshold: ${PERFORMANCE_THRESHOLDS.TEMPLATE_VALIDATION}ms)`);
     });
 
-    test('Validation performance scales reasonably with template size', async () => {
+    test('Validation performance scales reasonably with template size', async() => {
       const templates = [MOCK_TEMPLATES.cached, MOCK_TEMPLATES.new, MOCK_TEMPLATES.large];
       const results = [];
 
@@ -257,7 +257,7 @@ describe('Template Download and Validation Performance Tests', () => {
       console.log('Validation scalability:', results.map(r => `${r.template}: ${r.duration.toFixed(2)}ms`));
     });
 
-    test('Validation handles complex template structures efficiently', async () => {
+    test('Validation handles complex template structures efficiently', async() => {
       const complexTemplate = {
         ...MOCK_TEMPLATES.large,
         structure: {
@@ -306,7 +306,7 @@ describe('Template Download and Validation Performance Tests', () => {
   });
 
   describe('3. Git Repository Cloning Performance', () => {
-    test('Git repository cloning completes in under 3s for small repositories', async () => {
+    test('Git repository cloning completes in under 3s for small repositories', async() => {
       const repo = MOCK_GIT_REPOSITORIES.small;
       const startTime = performance.now();
 
@@ -331,7 +331,7 @@ describe('Template Download and Validation Performance Tests', () => {
       console.log(`Git cloning (${repo.name}): ${duration.toFixed(2)}ms (threshold: ${PERFORMANCE_THRESHOLDS.GIT_CLONING_SMALL_REPO}ms)`);
     });
 
-    test('Git cloning performance is consistent across different repositories', async () => {
+    test('Git cloning performance is consistent across different repositories', async() => {
       const repositories = [MOCK_GIT_REPOSITORIES.small, MOCK_GIT_REPOSITORIES.medium];
       const results = [];
 
@@ -363,7 +363,7 @@ describe('Template Download and Validation Performance Tests', () => {
   });
 
   describe('4. Template Processing and Variable Substitution Performance', () => {
-    test('Template processing and variable substitution completes in under 500ms', async () => {
+    test('Template processing and variable substitution completes in under 500ms', async() => {
       const template = MOCK_TEMPLATES.cached;
       const variables = {
         projectName: 'test-project',
@@ -396,7 +396,7 @@ describe('Template Download and Validation Performance Tests', () => {
       console.log(`Template processing: ${duration.toFixed(2)}ms (threshold: ${PERFORMANCE_THRESHOLDS.TEMPLATE_PROCESSING}ms)`);
     });
 
-    test('Processing performance scales linearly with variable count', async () => {
+    test('Processing performance scales linearly with variable count', async() => {
       const template = MOCK_TEMPLATES.cached;
       const variableCounts = [5, 10, 20, 50];
       const results = [];
@@ -441,7 +441,7 @@ describe('Template Download and Validation Performance Tests', () => {
   });
 
   describe('5. Network Timeout Handling Performance', () => {
-    test('Network timeout handling doesn\'t block execution', async () => {
+    test('Network timeout handling doesn\'t block execution', async() => {
       const slowTemplate = {
         ...MOCK_TEMPLATES.new,
         downloadTime: PERFORMANCE_THRESHOLDS.NETWORK_TIMEOUT + 1000 // Slower than timeout
@@ -475,7 +475,7 @@ describe('Template Download and Validation Performance Tests', () => {
       console.log(`Network timeout handling: ${duration.toFixed(2)}ms (timeout: ${PERFORMANCE_THRESHOLDS.NETWORK_TIMEOUT}ms)`);
     }, 10000); // 10 second timeout for this test
 
-    test('Multiple timeouts are handled efficiently', async () => {
+    test('Multiple timeouts are handled efficiently', async() => {
       const timeoutPromises = [];
       const timeoutCount = 5;
 
@@ -510,7 +510,7 @@ describe('Template Download and Validation Performance Tests', () => {
   });
 
   describe('6. Concurrent Template Downloads Performance', () => {
-    test('Concurrent template downloads are properly managed', async () => {
+    test('Concurrent template downloads are properly managed', async() => {
       const templates = [
         MOCK_TEMPLATES.cached,
         MOCK_TEMPLATES.new,
@@ -562,7 +562,7 @@ describe('Template Download and Validation Performance Tests', () => {
       console.log(`Concurrent downloads: ${totalDuration.toFixed(2)}ms for ${templates.length} templates`);
     });
 
-    test('Concurrent downloads maintain performance under load', async () => {
+    test('Concurrent downloads maintain performance under load', async() => {
       const concurrentLevels = [2, 4, 8];
       const results = [];
 
@@ -645,9 +645,9 @@ describe('Template Download and Validation Performance Tests', () => {
       // This test establishes a baseline for regression detection
       // In a real implementation, this would compare against historical data
       const baselineMetrics = {
-        cachedDownload: 200,    // ms
-        validation: 100,        // ms
-        processing: 150         // ms
+        cachedDownload: 200, // ms
+        validation: 100, // ms
+        processing: 150 // ms
       };
 
       const currentMetrics = {
@@ -712,7 +712,7 @@ describe('Template Download and Validation Performance Tests', () => {
     // Simulate network delay
     const downloadTime = options.cached ?
       Math.random() * 100 + 50 : // 50-150ms for cached
-      template.downloadTime;    // Use template's download time for new
+      template.downloadTime; // Use template's download time for new
 
     await new Promise(resolve => setTimeout(resolve, downloadTime));
 

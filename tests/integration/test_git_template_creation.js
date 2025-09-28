@@ -9,19 +9,19 @@ const path = require('path');
 // Mock modules
 jest.mock('simple-git', () => ({
   __esModule: true,
-  default: jest.fn(),
+  default: jest.fn()
 }));
 
 jest.mock('ora', () => ({
   __esModule: true,
-  default: jest.fn(),
+  default: jest.fn()
 }));
 
 jest.mock('inquirer', () => ({
   __esModule: true,
   default: {
-    prompt: jest.fn(),
-  },
+    prompt: jest.fn()
+  }
 }));
 
 jest.mock('fs-extra', () => ({
@@ -33,7 +33,7 @@ jest.mock('fs-extra', () => ({
   writeFileSync: jest.fn(),
   readdirSync: jest.fn(),
   existsSync: jest.fn(),
-  writeJsonSync: jest.fn(),
+  writeJsonSync: jest.fn()
 }));
 
 // Import mocked modules
@@ -58,7 +58,7 @@ describe('Git Template Creation Integration Tests', () => {
       raw: jest.fn(),
       branch: jest.fn(),
       tag: jest.fn(),
-      log: jest.fn(),
+      log: jest.fn()
     };
     simpleGit.mockReturnValue(mockGit);
 
@@ -68,7 +68,7 @@ describe('Git Template Creation Integration Tests', () => {
       succeed: jest.fn().mockReturnThis(),
       fail: jest.fn().mockReturnThis(),
       info: jest.fn().mockReturnThis(),
-      stop: jest.fn().mockReturnThis(),
+      stop: jest.fn().mockReturnThis()
     };
     ora.mockReturnValue(mockSpinner);
 
@@ -81,7 +81,7 @@ describe('Git Template Creation Integration Tests', () => {
   });
 
   describe('CLI create command with git URLs', () => {
-    test('should create project from git repository URL', async () => {
+    test('should create project from git repository URL', async() => {
       // Arrange
       const gitUrl = 'https://github.com/user/template-repo.git';
       const projectName = 'test-project';
@@ -115,7 +115,7 @@ describe('Git Template Creation Integration Tests', () => {
       );
     });
 
-    test('should handle git repository cloning with branch specification', async () => {
+    test('should handle git repository cloning with branch specification', async() => {
       // Arrange
       const gitUrl = 'https://github.com/user/template-repo.git';
       const projectName = 'test-project';
@@ -139,7 +139,7 @@ describe('Git Template Creation Integration Tests', () => {
       expect(mockGit.checkout).toHaveBeenCalledWith(branchName);
     });
 
-    test('should handle git repository cloning with tag specification', async () => {
+    test('should handle git repository cloning with tag specification', async() => {
       // Arrange
       const gitUrl = 'https://github.com/user/template-repo.git';
       const projectName = 'test-project';
@@ -163,7 +163,7 @@ describe('Git Template Creation Integration Tests', () => {
       expect(mockGit.checkout).toHaveBeenCalledWith(`tags/${tagName}`);
     });
 
-    test('should process template correctly after cloning', async () => {
+    test('should process template correctly after cloning', async() => {
       // Arrange
       const gitUrl = 'https://github.com/user/template-repo.git';
       const projectName = 'test-project';
@@ -216,7 +216,7 @@ describe('Git Template Creation Integration Tests', () => {
       );
     });
 
-    test('should cleanup repository after template processing', async () => {
+    test('should cleanup repository after template processing', async() => {
       // Arrange
       const gitUrl = 'https://github.com/user/template-repo.git';
       const projectName = 'test-project';
@@ -240,7 +240,7 @@ describe('Git Template Creation Integration Tests', () => {
       );
     });
 
-    test('should handle invalid git URLs with proper error', async () => {
+    test('should handle invalid git URLs with proper error', async() => {
       // Arrange
       const invalidGitUrl = 'not-a-valid-url';
       const projectName = 'test-project';
@@ -253,7 +253,7 @@ describe('Git Template Creation Integration Tests', () => {
       expect(mockGit.clone).not.toHaveBeenCalled();
     });
 
-    test('should handle git clone errors with proper error', async () => {
+    test('should handle git clone errors with proper error', async() => {
       // Arrange
       const gitUrl = 'https://github.com/user/nonexistent-repo.git';
       const projectName = 'test-project';
@@ -271,7 +271,7 @@ describe('Git Template Creation Integration Tests', () => {
       );
     });
 
-    test('should handle non-existent branches with proper error', async () => {
+    test('should handle non-existent branches with proper error', async() => {
       // Arrange
       const gitUrl = 'https://github.com/user/template-repo.git';
       const projectName = 'test-project';
@@ -291,7 +291,7 @@ describe('Git Template Creation Integration Tests', () => {
       );
     });
 
-    test('should handle non-existent tags with proper error', async () => {
+    test('should handle non-existent tags with proper error', async() => {
       // Arrange
       const gitUrl = 'https://github.com/user/template-repo.git';
       const projectName = 'test-project';
@@ -311,7 +311,7 @@ describe('Git Template Creation Integration Tests', () => {
       );
     });
 
-    test('should handle git authentication for private repositories', async () => {
+    test('should handle git authentication for private repositories', async() => {
       // Arrange
       const privateGitUrl = 'https://github.com/user/private-repo.git';
       const projectName = 'test-project';
@@ -343,7 +343,7 @@ describe('Git Template Creation Integration Tests', () => {
       expect(true).toBe(true); // Test passes as long as we get the expected error
     });
 
-    test('should handle network errors during git operations', async () => {
+    test('should handle network errors during git operations', async() => {
       // Arrange
       const gitUrl = 'https://github.com/user/template-repo.git';
       const projectName = 'test-project';
@@ -364,7 +364,7 @@ describe('Git Template Creation Integration Tests', () => {
       );
     });
 
-    test('should handle file system errors during template processing', async () => {
+    test('should handle file system errors during template processing', async() => {
       // Arrange
       const gitUrl = 'https://github.com/user/template-repo.git';
       const projectName = 'test-project';
@@ -389,7 +389,7 @@ describe('Git Template Creation Integration Tests', () => {
       );
     });
 
-    test('should validate git URL format before attempting operations', async () => {
+    test('should validate git URL format before attempting operations', async() => {
       // Arrange
       const invalidFormatUrl = 'not-a-valid-url';
       const projectName = 'test-project';
@@ -402,7 +402,7 @@ describe('Git Template Creation Integration Tests', () => {
       expect(mockGit.clone).not.toHaveBeenCalled();
     });
 
-    test('should handle git submodules properly', async () => {
+    test('should handle git submodules properly', async() => {
       // Arrange
       const gitUrl = 'https://github.com/user/template-repo.git';
       const projectName = 'test-project';
@@ -430,7 +430,7 @@ describe('Git Template Creation Integration Tests', () => {
   });
 
   describe('Template processing validation', () => {
-    test('should handle template variables substitution correctly', async () => {
+    test('should handle template variables substitution correctly', async() => {
       // Arrange
       const gitUrl = 'https://github.com/user/template-repo.git';
       const projectName = 'my-custom-project';
@@ -471,7 +471,7 @@ describe('Git Template Creation Integration Tests', () => {
       );
     });
 
-    test('should handle missing template configuration gracefully', async () => {
+    test('should handle missing template configuration gracefully', async() => {
       // Arrange
       const gitUrl = 'https://github.com/user/template-repo.git';
       const projectName = 'test-project';

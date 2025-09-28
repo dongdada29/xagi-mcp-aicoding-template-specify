@@ -9,7 +9,7 @@ const mockVueTemplate = {
   version: '1.0.0',
   description: 'Vue.js project template with TypeScript, Router, and Pinia',
 
-  generateProject: async (projectName, projectPath, options = {}) => {
+  generateProject: async(projectName, projectPath, options = {}) => {
     const {
       typescript = true,
       router = true,
@@ -166,8 +166,8 @@ export const useCounterStore = defineStore('counter', () => {
   extends: [
     'plugin:vue/vue3-essential',
     'eslint:recommended',
-    ${typescript ? "'@vue/eslint-config-typescript'," : ''}
-    ${prettier ? "'@vue/eslint-config-prettier/skip-formatting'," : ''}
+    ${typescript ? '\'@vue/eslint-config-typescript\',' : ''}
+    ${prettier ? '\'@vue/eslint-config-prettier/skip-formatting\',' : ''}
   ],
   parserOptions: {
     ecmaVersion: 'latest'
@@ -195,13 +195,13 @@ export const useCounterStore = defineStore('counter', () => {
 
     // Basic Vue app structure
     files['src/main.ts'] = `import { createApp } from 'vue'
-${router ? "import router from './router'" : ''}
-${pinia ? "import { createPinia } from 'pinia'" : ''}
+${router ? 'import router from \'./router\'' : ''}
+${pinia ? 'import { createPinia } from \'pinia\'' : ''}
 import App from './App.vue'
 
 const app = createApp(App)
-${pinia ? "app.use(createPinia())" : ''}
-${router ? "app.use(router)" : ''}
+${pinia ? 'app.use(createPinia())' : ''}
+${router ? 'app.use(router)' : ''}
 app.mount('#app')`;
 
     files['src/App.vue'] = `<template>
@@ -239,7 +239,7 @@ app.mount('#app')`;
 </template>
 
 <script setup lang="ts">
-${pinia ? "import { useCounterStore } from '@/stores/counter'\nconst counter = useCounterStore()" : ""}
+${pinia ? 'import { useCounterStore } from \'@/stores/counter\'\nconst counter = useCounterStore()' : ''}
 </script>`;
 
     files['src/views/AboutView.vue'] = `<template>
@@ -362,7 +362,7 @@ describe('Vue.js Project Creation Integration Tests', () => {
   });
 
   describe('Project Structure Validation', () => {
-    test('should create project with correct directory structure', async () => {
+    test('should create project with correct directory structure', async() => {
       const projectName = 'vue-structure-test';
       const projectPath = path.join(tempDir, projectName);
 
@@ -389,7 +389,7 @@ describe('Vue.js Project Creation Integration Tests', () => {
       expect(files.length).toBeGreaterThan(0);
     });
 
-    test('should create valid package.json with correct dependencies', async () => {
+    test('should create valid package.json with correct dependencies', async() => {
       const projectName = 'vue-package-test';
       const projectPath = path.join(tempDir, projectName);
 
@@ -425,7 +425,7 @@ describe('Vue.js Project Creation Integration Tests', () => {
       expect(packageJson.scripts).toHaveProperty('format');
     });
 
-    test('should create src directory with Vue components', async () => {
+    test('should create src directory with Vue components', async() => {
       const projectName = 'vue-src-test';
       const projectPath = path.join(tempDir, projectName);
 
@@ -455,7 +455,7 @@ describe('Vue.js Project Creation Integration Tests', () => {
   });
 
   describe('TypeScript Configuration', () => {
-    test('should generate TypeScript configuration when enabled', async () => {
+    test('should generate TypeScript configuration when enabled', async() => {
       const projectName = 'vue-ts-test';
       const projectPath = path.join(tempDir, projectName);
 
@@ -487,7 +487,7 @@ describe('Vue.js Project Creation Integration Tests', () => {
       expect(viteConfig).toContain('defineConfig');
     });
 
-    test('should not generate TypeScript configuration when disabled', async () => {
+    test('should not generate TypeScript configuration when disabled', async() => {
       const projectName = 'vue-no-ts-test';
       const projectPath = path.join(tempDir, projectName);
 
@@ -506,7 +506,7 @@ describe('Vue.js Project Creation Integration Tests', () => {
   });
 
   describe('Vue Router Configuration', () => {
-    test('should configure Vue Router when enabled', async () => {
+    test('should configure Vue Router when enabled', async() => {
       const projectName = 'vue-router-test';
       const projectPath = path.join(tempDir, projectName);
 
@@ -538,7 +538,7 @@ describe('Vue.js Project Creation Integration Tests', () => {
       expect(packageJson.dependencies).toHaveProperty('vue-router');
     });
 
-    test('should not configure Vue Router when disabled', async () => {
+    test('should not configure Vue Router when disabled', async() => {
       const projectName = 'vue-no-router-test';
       const projectPath = path.join(tempDir, projectName);
 
@@ -559,7 +559,7 @@ describe('Vue.js Project Creation Integration Tests', () => {
   });
 
   describe('Pinia State Management Configuration', () => {
-    test('should configure Pinia when enabled', async () => {
+    test('should configure Pinia when enabled', async() => {
       const projectName = 'vue-pinia-test';
       const projectPath = path.join(tempDir, projectName);
 
@@ -592,7 +592,7 @@ describe('Vue.js Project Creation Integration Tests', () => {
       expect(packageJson.dependencies).toHaveProperty('pinia');
     });
 
-    test('should not configure Pinia when disabled', async () => {
+    test('should not configure Pinia when disabled', async() => {
       const projectName = 'vue-no-pinia-test';
       const projectPath = path.join(tempDir, projectName);
 
@@ -612,7 +612,7 @@ describe('Vue.js Project Creation Integration Tests', () => {
   });
 
   describe('ESLint and Prettier Configuration', () => {
-    test('should configure ESLint when enabled', async () => {
+    test('should configure ESLint when enabled', async() => {
       const projectName = 'vue-eslint-test';
       const projectPath = path.join(tempDir, projectName);
 
@@ -641,7 +641,7 @@ describe('Vue.js Project Creation Integration Tests', () => {
       expect(packageJson.scripts.lint).toContain('eslint');
     });
 
-    test('should configure Prettier when enabled', async () => {
+    test('should configure Prettier when enabled', async() => {
       const projectName = 'vue-prettier-test';
       const projectPath = path.join(tempDir, projectName);
 
@@ -667,7 +667,7 @@ describe('Vue.js Project Creation Integration Tests', () => {
       expect(packageJson.scripts).toHaveProperty('format');
     });
 
-    test('should not configure ESLint and Prettier when disabled', async () => {
+    test('should not configure ESLint and Prettier when disabled', async() => {
       const projectName = 'vue-no-lint-test';
       const projectPath = path.join(tempDir, projectName);
 
@@ -689,7 +689,7 @@ describe('Vue.js Project Creation Integration Tests', () => {
   });
 
   describe('Development Server Configuration', () => {
-    test('should configure Vite development server correctly', async () => {
+    test('should configure Vite development server correctly', async() => {
       const projectName = 'vue-dev-server-test';
       const projectPath = path.join(tempDir, projectName);
 
@@ -712,7 +712,7 @@ describe('Vue.js Project Creation Integration Tests', () => {
       expect(packageJson.scripts.preview).toBe('vite preview');
     });
 
-    test('should disable auto-open when devServer is disabled', async () => {
+    test('should disable auto-open when devServer is disabled', async() => {
       const projectName = 'vue-no-open-test';
       const projectPath = path.join(tempDir, projectName);
 
@@ -724,7 +724,7 @@ describe('Vue.js Project Creation Integration Tests', () => {
       expect(viteConfig).toContain('open: false');
     });
 
-    test('should include proper build configuration', async () => {
+    test('should include proper build configuration', async() => {
       const projectName = 'vue-build-test';
       const projectPath = path.join(tempDir, projectName);
 
@@ -744,7 +744,7 @@ describe('Vue.js Project Creation Integration Tests', () => {
   });
 
   describe('Error Handling and Edge Cases', () => {
-    test('should handle missing project name gracefully', async () => {
+    test('should handle missing project name gracefully', async() => {
       mockExec.mockImplementation((command) => {
         throw new Error('Project name is required');
       });
@@ -756,7 +756,7 @@ describe('Vue.js Project Creation Integration Tests', () => {
       }).toThrow('Project name is required');
     });
 
-    test('should handle invalid project path', async () => {
+    test('should handle invalid project path', async() => {
       const invalidPath = '/root/invalid-path';
 
       mockExec.mockImplementation((command) => {
@@ -773,7 +773,7 @@ describe('Vue.js Project Creation Integration Tests', () => {
       }).toThrow('permission denied');
     });
 
-    test('should handle template not found error', async () => {
+    test('should handle template not found error', async() => {
       mockExec.mockImplementation((command) => {
         if (command.includes('non-existent-template')) {
           throw new Error('Template not found: @xagi/non-existent-template');
@@ -788,7 +788,7 @@ describe('Vue.js Project Creation Integration Tests', () => {
       }).toThrow('Template not found');
     });
 
-    test('should validate project name format', async () => {
+    test('should validate project name format', async() => {
       const invalidNames = [
         'invalid project name',
         '123-project',
@@ -815,7 +815,7 @@ describe('Vue.js Project Creation Integration Tests', () => {
   });
 
   describe('Configuration Validation', () => {
-    test('should validate TypeScript configuration in generated files', async () => {
+    test('should validate TypeScript configuration in generated files', async() => {
       const projectName = 'vue-ts-validation-test';
       const projectPath = path.join(tempDir, projectName);
 
@@ -841,12 +841,12 @@ describe('Vue.js Project Creation Integration Tests', () => {
         // Check for proper TypeScript syntax
         if (file.includes('.ts')) {
           expect(content).toContain('import'); // Check for imports
-          expect(content).toContain('from');   // Check for module syntax
+          expect(content).toContain('from'); // Check for module syntax
         }
       });
     });
 
-    test('should validate Vue component structure', async () => {
+    test('should validate Vue component structure', async() => {
       const projectName = 'vue-component-validation-test';
       const projectPath = path.join(tempDir, projectName);
 
@@ -873,7 +873,7 @@ describe('Vue.js Project Creation Integration Tests', () => {
       });
     });
 
-    test('should validate configuration file formats', async () => {
+    test('should validate configuration file formats', async() => {
       const projectName = 'vue-config-validation-test';
       const projectPath = path.join(tempDir, projectName);
 

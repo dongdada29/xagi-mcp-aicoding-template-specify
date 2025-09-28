@@ -51,7 +51,7 @@ describe('POST /projects - Contract Tests', () => {
     }
   });
 
-  afterAll(async () => {
+  afterAll(async() => {
     // Clean up any test directories created
     const testDirs = ['/tmp/test-project', '/tmp/existing-project'];
     for (const dir of testDirs) {
@@ -62,7 +62,7 @@ describe('POST /projects - Contract Tests', () => {
   });
 
   describe('Successful Project Creation', () => {
-    test('should return 200 status code for valid project creation', async () => {
+    test('should return 200 status code for valid project creation', async() => {
       if (!app) {
         throw new Error('Server not implemented');
       }
@@ -81,7 +81,7 @@ describe('POST /projects - Contract Tests', () => {
       expect(response.body).toHaveProperty('lastModified');
     });
 
-    test('should create project files in correct location', async () => {
+    test('should create project files in correct location', async() => {
       if (!app) {
         throw new Error('Server not implemented');
       }
@@ -107,7 +107,7 @@ describe('POST /projects - Contract Tests', () => {
       expect(response.body.files.length).toBeGreaterThan(0);
     });
 
-    test('should return complete project creation details', async () => {
+    test('should return complete project creation details', async() => {
       if (!app) {
         throw new Error('Server not implemented');
       }
@@ -137,7 +137,7 @@ describe('POST /projects - Contract Tests', () => {
   });
 
   describe('Invalid Configuration Handling', () => {
-    test('should return 400 status code for missing required fields', async () => {
+    test('should return 400 status code for missing required fields', async() => {
       if (!app) {
         throw new Error('Server not implemented');
       }
@@ -151,7 +151,7 @@ describe('POST /projects - Contract Tests', () => {
       expect(response.body.error).toContain('projectName');
     });
 
-    test('should return 400 status code for invalid template configuration', async () => {
+    test('should return 400 status code for invalid template configuration', async() => {
       if (!app) {
         throw new Error('Server not implemented');
       }
@@ -178,7 +178,7 @@ describe('POST /projects - Contract Tests', () => {
       expect(response.body.error).toContain('framework');
     });
 
-    test('should return 400 for non-existent template', async () => {
+    test('should return 400 for non-existent template', async() => {
       if (!app) {
         throw new Error('Server not implemented');
       }
@@ -203,7 +203,7 @@ describe('POST /projects - Contract Tests', () => {
   });
 
   describe('Project Name and Path Validation', () => {
-    test('should validate project name format', async () => {
+    test('should validate project name format', async() => {
       if (!app) {
         throw new Error('Server not implemented');
       }
@@ -226,7 +226,7 @@ describe('POST /projects - Contract Tests', () => {
       expect(response.body.error).toContain('projectName');
     });
 
-    test('should validate project path format and permissions', async () => {
+    test('should validate project path format and permissions', async() => {
       if (!app) {
         throw new Error('Server not implemented');
       }
@@ -249,7 +249,7 @@ describe('POST /projects - Contract Tests', () => {
       expect(response.body.error).toContain('projectPath');
     });
 
-    test('should return 409 for duplicate project path', async () => {
+    test('should return 409 for duplicate project path', async() => {
       if (!app) {
         throw new Error('Server not implemented');
       }
@@ -272,7 +272,7 @@ describe('POST /projects - Contract Tests', () => {
   });
 
   describe('Template Configuration Validation', () => {
-    test('should validate required template-specific config values', async () => {
+    test('should validate required template-specific config values', async() => {
       if (!app) {
         throw new Error('Server not implemented');
       }
@@ -297,7 +297,7 @@ describe('POST /projects - Contract Tests', () => {
       expect(response.body.error).toContain('configValues');
     });
 
-    test('should validate config value types and constraints', async () => {
+    test('should validate config value types and constraints', async() => {
       if (!app) {
         throw new Error('Server not implemented');
       }
@@ -324,7 +324,7 @@ describe('POST /projects - Contract Tests', () => {
   });
 
   describe('Dry Run Mode', () => {
-    test('should validate configuration without creating files when dryRun=true', async () => {
+    test('should validate configuration without creating files when dryRun=true', async() => {
       if (!app) {
         throw new Error('Server not implemented');
       }

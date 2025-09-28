@@ -427,7 +427,7 @@ class CacheStore {
   getFormattedSize() {
     const bytes = this.size || 0;
     const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-    if (bytes === 0) return '0 B';
+    if (bytes === 0) {return '0 B';}
 
     const i = Math.floor(Math.log(bytes) / Math.log(1024));
     return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
@@ -449,9 +449,9 @@ class CacheStore {
       return `${minutes} minute${minutes !== 1 ? 's' : ''} ago`;
     } else if (hours < 24) {
       return `${hours} hour${hours !== 1 ? 's' : ''} ago`;
-    } else {
-      return `${days} day${days !== 1 ? 's' : ''} ago`;
     }
+    return `${days} day${days !== 1 ? 's' : ''} ago`;
+
   }
 }
 

@@ -11,7 +11,7 @@ try {
     getCacheEntry: jest.fn(),
     deleteCacheEntry: jest.fn(),
     invalidateCache: jest.fn(),
-    getCacheStats: jest.fn(),
+    getCacheStats: jest.fn()
   }));
 } catch (error) {
   // If the module doesn't exist, create mock functions directly
@@ -19,7 +19,7 @@ try {
     getCacheEntry: jest.fn(),
     deleteCacheEntry: jest.fn(),
     invalidateCache: jest.fn(),
-    getCacheStats: jest.fn(),
+    getCacheStats: jest.fn()
   };
 }
 
@@ -42,7 +42,7 @@ describe('DELETE /cache/{id} endpoint', () => {
   let testCacheDir;
   let testCacheEntry;
 
-  beforeEach(async () => {
+  beforeEach(async() => {
     app = createTestApp();
     testCacheDir = path.join('/tmp', `cache-delete-test-${Date.now()}`);
     await fs.ensureDir(testCacheDir);
@@ -84,13 +84,13 @@ describe('DELETE /cache/{id} endpoint', () => {
     });
   });
 
-  afterEach(async () => {
+  afterEach(async() => {
     await fs.remove(testCacheDir);
     jest.clearAllMocks();
   });
 
   describe('Success scenarios', () => {
-    test('should return 200 status code for successful cache deletion', async () => {
+    test('should return 200 status code for successful cache deletion', async() => {
       const response = await request(app)
         .delete('/cache/react-next-template@1.0.0')
         .expect('Content-Type', /json/);
@@ -99,7 +99,7 @@ describe('DELETE /cache/{id} endpoint', () => {
       expect(response.status).toBe(200);
     });
 
-    test('should return confirmation message with deleted entry details', async () => {
+    test('should return confirmation message with deleted entry details', async() => {
       const response = await request(app)
         .delete('/cache/react-next-template@1.0.0')
         .expect(200);
@@ -112,7 +112,7 @@ describe('DELETE /cache/{id} endpoint', () => {
       expect(response.body.deletedEntry).toHaveProperty('version', '1.0.0');
     });
 
-    test('should include cache statistics after deletion', async () => {
+    test('should include cache statistics after deletion', async() => {
       const response = await request(app)
         .delete('/cache/react-next-template@1.0.0')
         .expect(200);
@@ -128,7 +128,7 @@ describe('DELETE /cache/{id} endpoint', () => {
       expect(typeof response.body.cacheStats.totalAccessCount).toBe('number');
     });
 
-    test('should remove cache files from filesystem', async () => {
+    test('should remove cache files from filesystem', async() => {
       // Verify files exist before deletion
       expect(await fs.pathExists(testCacheEntry.path)).toBe(true);
       expect(await fs.pathExists(path.join(testCacheEntry.path, 'template.json'))).toBe(true);
@@ -142,7 +142,7 @@ describe('DELETE /cache/{id} endpoint', () => {
       expect(response.body).toHaveProperty('filesRemoved', true);
     });
 
-    test('should handle cache invalidation properly', async () => {
+    test('should handle cache invalidation properly', async() => {
       const response = await request(app)
         .delete('/cache/react-next-template@1.0.0')
         .expect(200);
@@ -153,7 +153,7 @@ describe('DELETE /cache/{id} endpoint', () => {
       expect(response.body.invalidation).toHaveProperty('status', 'completed');
     });
 
-    test('should handle bulk deletion when requested', async () => {
+    test('should handle bulk deletion when requested', async() => {
       const response = await request(app)
         .delete('/cache/react-next-template@1.0.0')
         .query({ bulk: true })
@@ -166,7 +166,7 @@ describe('DELETE /cache/{id} endpoint', () => {
   });
 
   describe('Error scenarios', () => {
-    test('should return 404 status code for non-existent cache entry', async () => {
+    test('should return 404 status code for non-existent cache entry', async() => {
       cacheService.getCacheEntry.mockResolvedValue(null);
 
       const response = await request(app)
@@ -179,7 +179,7 @@ describe('DELETE /cache/{id} endpoint', () => {
       expect(response.body.message).toContain('not found');
     });
 
-    test('should handle cache service errors gracefully', async () => {
+    test('should handle cache service errors gracefully', async() => {
       cacheService.deleteCacheEntry.mockRejectedValue(new Error('Cache service unavailable'));
 
       const response = await request(app)
@@ -191,7 +191,7 @@ describe('DELETE /cache/{id} endpoint', () => {
       expect(response.body.message).toContain('Failed to delete cache entry');
     });
 
-    test('should handle file system deletion errors', async () => {
+    test('should handle file system deletion errors', async() => {
       // Mock file system error
       const originalRemove = fs.remove;
       fs.remove = jest.fn().mockRejectedValue(new Error('Permission denied'));
@@ -208,7 +208,7 @@ describe('DELETE /cache/{id} endpoint', () => {
       fs.remove = originalRemove;
     });
 
-    test('should handle invalid cache ID format', async () => {
+    test('should handle invalid cache ID format', async() => {
       const response = await request(app)
         .delete('/cache/invalid-id-format')
         .expect(400);
@@ -218,7 +218,7 @@ describe('DELETE /cache/{id} endpoint', () => {
       expect(response.body.message).toContain('Invalid cache ID format');
     });
 
-    test('should handle cache locked scenario', async () => {
+    test('should handle cache locked scenario', async() => {
       cacheService.deleteCacheEntry.mockRejectedValue(new Error('Cache entry is locked'));
 
       const response = await request(app)
@@ -230,7 +230,7 @@ describe('DELETE /cache/{id} endpoint', () => {
       expect(response.body.message).toContain('Cache entry is locked');
     });
 
-    test('should handle concurrent deletion attempts', async () => {
+    test('should handle concurrent deletion attempts', async() => {
       // Simulate concurrent deletion by having the service reject
       cacheService.deleteCacheEntry.mockRejectedValueOnce(new Error('Already being deleted'));
 
@@ -245,7 +245,7 @@ describe('DELETE /cache/{id} endpoint', () => {
   });
 
   describe('Response format validation', () => {
-    test('should return proper JSON format', async () => {
+    test('should return proper JSON format', async() => {
       const response = await request(app)
         .delete('/cache/react-next-template@1.0.0')
         .expect(200);
@@ -260,7 +260,7 @@ describe('DELETE /cache/{id} endpoint', () => {
       expect(response.body).toHaveProperty('timestamp');
     });
 
-    test('should include operation timestamp', async () => {
+    test('should include operation timestamp', async() => {
       const beforeRequest = new Date();
 
       const response = await request(app)
@@ -273,7 +273,7 @@ describe('DELETE /cache/{id} endpoint', () => {
       expect(responseTime.getTime()).toBeLessThanOrEqual(Date.now() + 1000);
     });
 
-    test('should include operation metadata', async () => {
+    test('should include operation metadata', async() => {
       const response = await request(app)
         .delete('/cache/react-next-template@1.0.0')
         .expect(200);
@@ -287,7 +287,7 @@ describe('DELETE /cache/{id} endpoint', () => {
   });
 
   describe('Security and validation', () => {
-    test('should validate cache ID parameter', async () => {
+    test('should validate cache ID parameter', async() => {
       const invalidIds = [
         'cache/../../../malicious-path',
         'cache/|rm -rf|',
@@ -306,7 +306,7 @@ describe('DELETE /cache/{id} endpoint', () => {
       }
     });
 
-    test('should handle overly long cache IDs', async () => {
+    test('should handle overly long cache IDs', async() => {
       const longId = 'a'.repeat(1000); // Very long ID
 
       const response = await request(app)
@@ -318,7 +318,7 @@ describe('DELETE /cache/{id} endpoint', () => {
       expect(response.body.message).toContain('Cache ID too long');
     });
 
-    test('should sanitize cache ID properly', async () => {
+    test('should sanitize cache ID properly', async() => {
       const response = await request(app)
         .delete('/cache/react-next-template@1.0.0')
         .expect(200);
@@ -331,7 +331,7 @@ describe('DELETE /cache/{id} endpoint', () => {
   });
 
   describe('Performance and edge cases', () => {
-    test('should handle large cache deletion efficiently', async () => {
+    test('should handle large cache deletion efficiently', async() => {
       // Create a large cache entry
       const largeCacheEntry = {
         ...testCacheEntry,
@@ -352,7 +352,7 @@ describe('DELETE /cache/{id} endpoint', () => {
       expect(endTime - startTime).toBeLessThan(5000);
     });
 
-    test('should handle cache deletion when cache is empty', async () => {
+    test('should handle cache deletion when cache is empty', async() => {
       cacheService.getCacheStats.mockResolvedValue({
         totalSize: 0,
         totalEntries: 0,
@@ -367,7 +367,7 @@ describe('DELETE /cache/{id} endpoint', () => {
       expect(response.body.cacheStats.totalSize).toBe(0);
     });
 
-    test('should handle deletion of currently accessed cache entry', async () => {
+    test('should handle deletion of currently accessed cache entry', async() => {
       // Mock scenario where cache entry is being accessed
       cacheService.deleteCacheEntry.mockImplementationOnce(() => {
         return new Promise((resolve) => {
@@ -383,7 +383,7 @@ describe('DELETE /cache/{id} endpoint', () => {
       expect(response.body.warning).toContain('Cache entry was in use');
     });
 
-    test('should log deletion operation for audit purposes', async () => {
+    test('should log deletion operation for audit purposes', async() => {
       const response = await request(app)
         .delete('/cache/react-next-template@1.0.0')
         .expect(200);

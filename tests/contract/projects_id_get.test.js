@@ -14,12 +14,12 @@ describe('GET /projects/{id} - Contract Tests', () => {
   let app;
   let testProject;
 
-  beforeAll(async () => {
+  beforeAll(async() => {
     // Mock app for testing - this will be replaced with actual app when implemented
     app = {
       // Mock express app that returns 404 for all routes
       get: jest.fn(),
-      listen: jest.fn(),
+      listen: jest.fn()
     };
 
     // Test project data
@@ -33,13 +33,13 @@ describe('GET /projects/{id} - Contract Tests', () => {
       metadata: {
         version: '1.0.0',
         author: 'Test Author',
-        tags: ['test', 'api', 'contract'],
-      },
+        tags: ['test', 'api', 'contract']
+      }
     };
   });
 
   describe('Success cases', () => {
-    test('should return 200 status code for existing project', async () => {
+    test('should return 200 status code for existing project', async() => {
       // This test will fail until the endpoint is implemented
       const projectId = 'test-project-123';
 
@@ -55,7 +55,7 @@ describe('GET /projects/{id} - Contract Tests', () => {
       expect(response.status).toBe(200);
     });
 
-    test('should return project details with all required fields', async () => {
+    test('should return project details with all required fields', async() => {
       const projectId = 'test-project-123';
 
       // Mock response
@@ -90,7 +90,7 @@ describe('GET /projects/{id} - Contract Tests', () => {
       expect(typeof project.metadata).toBe('object');
     });
 
-    test('should show project status and metadata', async () => {
+    test('should show project status and metadata', async() => {
       const projectId = 'test-project-123';
 
       // Mock response
@@ -125,7 +125,7 @@ describe('GET /projects/{id} - Contract Tests', () => {
       }
     });
 
-    test('should return proper JSON format with valid date strings', async () => {
+    test('should return proper JSON format with valid date strings', async() => {
       const projectId = 'test-project-123';
 
       // Mock response
@@ -151,7 +151,7 @@ describe('GET /projects/{id} - Contract Tests', () => {
       expect(project.updatedAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
     });
 
-    test('should return JSON that matches API schema', async () => {
+    test('should return JSON that matches API schema', async() => {
       const projectId = 'test-project-123';
 
       // Mock response
@@ -200,7 +200,7 @@ describe('GET /projects/{id} - Contract Tests', () => {
   });
 
   describe('Error cases', () => {
-    test('should return 404 status code for non-existent project', async () => {
+    test('should return 404 status code for non-existent project', async() => {
       const nonExistentId = 'non-existent-project-999';
 
       // Mock response
@@ -217,7 +217,7 @@ describe('GET /projects/{id} - Contract Tests', () => {
       expect(response.body.error).toContain('not found');
     });
 
-    test('should return 400 for invalid project ID format', async () => {
+    test('should return 400 for invalid project ID format', async() => {
       const invalidId = 'invalid-id-format';
 
       // Mock response
@@ -239,7 +239,7 @@ describe('GET /projects/{id} - Contract Tests', () => {
   });
 
   describe('Response format validation', () => {
-    test('should maintain consistent response structure', async () => {
+    test('should maintain consistent response structure', async() => {
       const projectId = 'test-project-123';
 
       // Mock response
@@ -263,7 +263,7 @@ describe('GET /projects/{id} - Contract Tests', () => {
       });
     });
 
-    test('should handle special characters in project ID', async () => {
+    test('should handle special characters in project ID', async() => {
       const specialId = 'test-project-123_special';
 
       // Mock response

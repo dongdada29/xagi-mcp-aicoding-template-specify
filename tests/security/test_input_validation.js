@@ -379,14 +379,14 @@ describe('Input Validation and Sanitization Security Tests', () => {
   describe('SQL Injection Prevention', () => {
     test('should prevent SQL injection attempts', () => {
       const sqlInjectionInputs = [
-        "' OR '1'='1",
-        "'; DROP TABLE users; --",
-        "1 UNION SELECT * FROM users",
-        "1; SELECT * FROM sensitive_data",
-        "' OR SLEEP(10)--",
-        "1' AND 1=1--",
-        "admin'--",
-        "' WAITFOR DELAY '0:0:10'--"
+        '\' OR \'1\'=\'1',
+        '\'; DROP TABLE users; --',
+        '1 UNION SELECT * FROM users',
+        '1; SELECT * FROM sensitive_data',
+        '\' OR SLEEP(10)--',
+        '1\' AND 1=1--',
+        'admin\'--',
+        '\' WAITFOR DELAY \'0:0:10\'--'
       ];
 
       sqlInjectionInputs.forEach(input => {

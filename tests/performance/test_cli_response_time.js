@@ -31,14 +31,14 @@ describe('CLI Response Time Performance', () => {
   let tempDir;
   let cliPath;
 
-  beforeAll(async () => {
+  beforeAll(async() => {
     // Setup temporary directory for test artifacts
     tempDir = `/tmp/xagi-cli-performance-test-${Date.now()}`;
     await fs.ensureDir(tempDir);
     cliPath = path.join(__dirname, '../../src/cli/index.js');
   });
 
-  afterAll(async () => {
+  afterAll(async() => {
     // Cleanup
     if (tempDir && await fs.pathExists(tempDir)) {
       await fs.remove(tempDir);
@@ -46,7 +46,7 @@ describe('CLI Response Time Performance', () => {
   });
 
   describe('CLI Startup Performance', () => {
-    test('CLI startup time should be under 200ms', async () => {
+    test('CLI startup time should be under 200ms', async() => {
       const iterations = 10;
       const startupTimes = [];
 
@@ -74,7 +74,7 @@ describe('CLI Response Time Performance', () => {
   });
 
   describe('Template Listing Performance', () => {
-    test('Template listing command should complete in under 200ms', async () => {
+    test('Template listing command should complete in under 200ms', async() => {
       const iterations = 5;
       const listingTimes = [];
 
@@ -99,7 +99,7 @@ describe('CLI Response Time Performance', () => {
       expect(false).toBe(true, 'Template listing time exceeds 200ms threshold - performance optimization needed');
     }, 10000);
 
-    test('Template listing with search filter should complete in under 200ms', async () => {
+    test('Template listing with search filter should complete in under 200ms', async() => {
       const startTime = performance.now();
 
       await executeCLI(['list', '--search', 'react'], { timeout: 5000, allowNonZeroExit: true });
@@ -117,7 +117,7 @@ describe('CLI Response Time Performance', () => {
   });
 
   describe('Project Creation Performance', () => {
-    test('Project creation command initialization should be under 200ms', async () => {
+    test('Project creation command initialization should be under 200ms', async() => {
       const startTime = performance.now();
 
       // Test initialization phase (before actual project creation)
@@ -134,7 +134,7 @@ describe('CLI Response Time Performance', () => {
       expect(false).toBe(true, 'Project creation initialization exceeds 200ms threshold');
     }, 5000);
 
-    test('Project creation with dry-run should complete quickly', async () => {
+    test('Project creation with dry-run should complete quickly', async() => {
       const startTime = performance.now();
 
       await executeCLI(['create', '--dry-run', '--non-interactive'], { timeout: 10000, allowNonZeroExit: true });
@@ -152,7 +152,7 @@ describe('CLI Response Time Performance', () => {
   });
 
   describe('Cache Operations Performance', () => {
-    test('Cache list operation should complete in under 200ms', async () => {
+    test('Cache list operation should complete in under 200ms', async() => {
       const startTime = performance.now();
 
       await executeCLI(['cache', 'list'], { timeout: 5000, allowNonZeroExit: true });
@@ -168,7 +168,7 @@ describe('CLI Response Time Performance', () => {
       expect(false).toBe(true, 'Cache list operation exceeds 200ms threshold');
     }, 5000);
 
-    test('Cache clear operation should complete in under 200ms', async () => {
+    test('Cache clear operation should complete in under 200ms', async() => {
       const startTime = performance.now();
 
       await executeCLI(['cache', 'clear', '--force'], { timeout: 5000, allowNonZeroExit: true });
@@ -186,7 +186,7 @@ describe('CLI Response Time Performance', () => {
   });
 
   describe('Memory Usage Performance', () => {
-    test('Memory usage should stay under 50MB during operations', async () => {
+    test('Memory usage should stay under 50MB during operations', async() => {
       const startMemory = process.memoryUsage();
 
       // Execute a sequence of commands
@@ -209,7 +209,7 @@ describe('CLI Response Time Performance', () => {
   });
 
   describe('Concurrent Command Performance', () => {
-    test('Concurrent command execution should not degrade performance significantly', async () => {
+    test('Concurrent command execution should not degrade performance significantly', async() => {
       const concurrentCommands = 5;
       const singleCommandTime = await measureSingleCommandTime();
 
@@ -246,7 +246,7 @@ describe('CLI Response Time Performance', () => {
       ['list', '--version']
     ];
 
-    test.each(commandsToTest)('Command %p should respond within 200ms', async (command) => {
+    test.each(commandsToTest)('Command %p should respond within 200ms', async(command) => {
       const startTime = performance.now();
 
       await executeCLI(command, { timeout: 5000, allowNonZeroExit: true });

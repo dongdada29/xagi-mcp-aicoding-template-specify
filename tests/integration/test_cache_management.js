@@ -56,7 +56,7 @@ describe('Cache Management and Performance Integration Tests', () => {
   let memoryFS;
   let originalCacheDir;
 
-  beforeAll(async () => {
+  beforeAll(async() => {
     // Store original cache directory
     originalCacheDir = process.env.XAGI_CACHE_DIR;
 
@@ -77,7 +77,7 @@ describe('Cache Management and Performance Integration Tests', () => {
     await createMockTemplate();
   });
 
-  afterAll(async () => {
+  afterAll(async() => {
     // Restore original cache directory
     process.env.XAGI_CACHE_DIR = originalCacheDir;
 
@@ -86,7 +86,7 @@ describe('Cache Management and Performance Integration Tests', () => {
     await fs.remove(testTempDir);
   });
 
-  beforeEach(async () => {
+  beforeEach(async() => {
     // Clear cache before each test
     await fs.emptyDir(testCacheDir);
 
@@ -95,13 +95,13 @@ describe('Cache Management and Performance Integration Tests', () => {
     jest.useFakeTimers();
   });
 
-  afterEach(async () => {
+  afterEach(async() => {
     // Restore real timers
     jest.useRealTimers();
   });
 
   describe('Template Caching Performance', () => {
-    test('Template caching improves performance on repeated use', async () => {
+    test('Template caching improves performance on repeated use', async() => {
       // First access - should be slow (no cache)
       const firstAccessStart = Date.now();
       await simulateTemplateAccess(TEST_TEMPLATE, 'first-access');
@@ -126,7 +126,7 @@ describe('Cache Management and Performance Integration Tests', () => {
       expect(cacheStats.totalAccessCount).toBeGreaterThanOrEqual(2);
     });
 
-    test('Cache stores template metadata correctly', async () => {
+    test('Cache stores template metadata correctly', async() => {
       await simulateTemplateAccess(TEST_TEMPLATE, 'metadata-test');
 
       const cacheEntryPath = path.join(testCacheDir, TEST_TEMPLATE);
@@ -144,7 +144,7 @@ describe('Cache Management and Performance Integration Tests', () => {
       expect(metadata.accessCount).toBe(1);
     });
 
-    test('Cache updates access statistics on repeated use', async () => {
+    test('Cache updates access statistics on repeated use', async() => {
       // Access template multiple times
       for (let i = 0; i < 5; i++) {
         await simulateTemplateAccess(TEST_TEMPLATE, `access-${i}`);
@@ -161,7 +161,7 @@ describe('Cache Management and Performance Integration Tests', () => {
   });
 
   describe('Cache Storage Location', () => {
-    test('Cache is stored in correct location (~/.xagi/create-ai-project/cache/)', async () => {
+    test('Cache is stored in correct location (~/.xagi/create-ai-project/cache/)', async() => {
       // Test with default cache location
       delete process.env.XAGI_CACHE_DIR;
 
@@ -178,7 +178,7 @@ describe('Cache Management and Performance Integration Tests', () => {
       process.env.XAGI_CACHE_DIR = testCacheDir;
     });
 
-    test('Cache directory structure is properly organized', async () => {
+    test('Cache directory structure is properly organized', async() => {
       await simulateTemplateAccess(TEST_TEMPLATE, 'structure-test');
 
       const cacheEntryPath = path.join(testCacheDir, TEST_TEMPLATE);
@@ -198,7 +198,7 @@ describe('Cache Management and Performance Integration Tests', () => {
       expect(await fs.pathExists(metadataPath)).toBe(true);
     });
 
-    test('Cache directory permissions are secure', async () => {
+    test('Cache directory permissions are secure', async() => {
       await simulateTemplateAccess(TEST_TEMPLATE, 'permissions-test');
 
       const cacheEntryPath = path.join(testCacheDir, TEST_TEMPLATE);
@@ -218,12 +218,12 @@ describe('Cache Management and Performance Integration Tests', () => {
   });
 
   describe('Cache Invalidation', () => {
-    test('Cache invalidation works when templates are updated', async () => {
+    test('Cache invalidation works when templates are updated', async() => {
       // Cache original template
       await simulateTemplateAccess(TEST_TEMPLATE, 'original');
 
-      let metadataPath = path.join(testCacheDir, TEST_TEMPLATE, 'metadata.json');
-      let originalMetadata = await fs.readJSON(metadataPath);
+      const metadataPath = path.join(testCacheDir, TEST_TEMPLATE, 'metadata.json');
+      const originalMetadata = await fs.readJSON(metadataPath);
 
       // Simulate template update by changing version
       const updatedTemplate = `${TEST_TEMPLATE.replace('1.0.0', '1.1.0')}`;
@@ -241,7 +241,7 @@ describe('Cache Management and Performance Integration Tests', () => {
       expect(updatedMetadata.version).toBe('1.1.0');
     });
 
-    test('Cache detects template modifications', async () => {
+    test('Cache detects template modifications', async() => {
       await simulateTemplateAccess(TEST_TEMPLATE, 'modification-test');
 
       // Simulate template modification
@@ -261,7 +261,7 @@ describe('Cache Management and Performance Integration Tests', () => {
   });
 
   describe('Cache Size Limits', () => {
-    test('Cache size limits are enforced', async () => {
+    test('Cache size limits are enforced', async() => {
       // Create multiple large cache entries
       const largeTemplates = [
         'large-template-1@1.0.0',
@@ -284,7 +284,7 @@ describe('Cache Management and Performance Integration Tests', () => {
       expect(cacheStats.totalEntries).toBeLessThanOrEqual(2); // Should keep only 2 entries
     });
 
-    test('Cache size calculation is accurate', async () => {
+    test('Cache size calculation is accurate', async() => {
       await simulateTemplateAccess(TEST_TEMPLATE, 'size-calculation');
 
       const cacheEntryPath = path.join(testCacheDir, TEST_TEMPLATE);
@@ -301,7 +301,7 @@ describe('Cache Management and Performance Integration Tests', () => {
   });
 
   describe('Cache TTL (Time-to-Live)', () => {
-    test('Cache TTL functionality works', async () => {
+    test('Cache TTL functionality works', async() => {
       await simulateTemplateAccess(TEST_TEMPLATE, 'ttl-test');
 
       // Fast-forward time beyond TTL
@@ -315,7 +315,7 @@ describe('Cache Management and Performance Integration Tests', () => {
       expect(result.reason).toContain('expired');
     });
 
-    test('Cache entries have proper TTL metadata', async () => {
+    test('Cache entries have proper TTL metadata', async() => {
       await simulateTemplateAccess(TEST_TEMPLATE, 'ttl-metadata');
 
       const metadataPath = path.join(testCacheDir, TEST_TEMPLATE, 'metadata.json');
@@ -332,7 +332,7 @@ describe('Cache Management and Performance Integration Tests', () => {
   });
 
   describe('Cache Pruning', () => {
-    test('Cache pruning removes expired entries', async () => {
+    test('Cache pruning removes expired entries', async() => {
       // Create cache entries with different ages
       const templates = [
         { id: 'old-template@1.0.0', age: CACHE_TTL_MS + 1000 },
@@ -363,7 +363,7 @@ describe('Cache Management and Performance Integration Tests', () => {
       expect(await fs.pathExists(path.join(testCacheDir, 'recent-template@1.0.0'))).toBe(true);
     });
 
-    test('Cache pruning respects size limits', async () => {
+    test('Cache pruning respects size limits', async() => {
       // Create cache entries that exceed size limit
       const largeTemplates = Array.from({ length: 10 }, (_, i) => `large-template-${i}@1.0.0`);
 
@@ -388,7 +388,7 @@ describe('Cache Management and Performance Integration Tests', () => {
   });
 
   describe('Performance Metrics', () => {
-    test('Performance metrics meet requirements (<1s template download)', async () => {
+    test('Performance metrics meet requirements (<1s template download)', async() => {
       // Test cold cache (first access)
       const coldStart = Date.now();
       await simulateTemplateAccess(TEST_TEMPLATE, 'cold-cache');
@@ -413,7 +413,7 @@ describe('Cache Management and Performance Integration Tests', () => {
       expect(metadata.performance.averageAccessTime).toBeLessThan(PERFORMANCE_THRESHOLD_MS);
     });
 
-    test('Performance metrics are accurately tracked', async () => {
+    test('Performance metrics are accurately tracked', async() => {
       const accessTimes = [];
 
       // Access template multiple times to gather performance data
@@ -440,7 +440,7 @@ describe('Cache Management and Performance Integration Tests', () => {
   });
 
   describe('Cache Clearing Functionality', () => {
-    test('Cache clearing works correctly', async () => {
+    test('Cache clearing works correctly', async() => {
       // Create multiple cache entries
       const templates = [
         'template-1@1.0.0',
@@ -475,7 +475,7 @@ describe('Cache Management and Performance Integration Tests', () => {
       }
     });
 
-    test('Selective cache clearing works', async () => {
+    test('Selective cache clearing works', async() => {
       const templates = [
         'keep-template@1.0.0',
         'remove-template@1.0.0',
@@ -501,7 +501,7 @@ describe('Cache Management and Performance Integration Tests', () => {
       expect(await fs.pathExists(path.join(testCacheDir, 'another-template@1.0.0'))).toBe(true);
     });
 
-    test('Cache clearing with confirmation works', async () => {
+    test('Cache clearing with confirmation works', async() => {
       await simulateTemplateAccess(TEST_TEMPLATE, 'confirmation-test');
 
       // This test will fail because cache clearing with confirmation is not implemented yet
@@ -514,7 +514,7 @@ describe('Cache Management and Performance Integration Tests', () => {
   });
 
   describe('Error Handling and Edge Cases', () => {
-    test('Cache handles concurrent access gracefully', async () => {
+    test('Cache handles concurrent access gracefully', async() => {
       const accessPromises = [];
 
       // Simulate concurrent access
@@ -534,7 +534,7 @@ describe('Cache Management and Performance Integration Tests', () => {
       expect(cacheStats.totalAccessCount).toBe(10);
     });
 
-    test('Cache handles disk space errors gracefully', async () => {
+    test('Cache handles disk space errors gracefully', async() => {
       // Mock disk space error
       const originalEnsureDir = fs.ensureDir;
       fs.ensureDir = jest.fn().mockRejectedValue(new Error('No space left on device'));
@@ -551,7 +551,7 @@ describe('Cache Management and Performance Integration Tests', () => {
       expect(cacheStats.totalEntries).toBe(0);
     });
 
-    test('Cache handles corrupted metadata gracefully', async () => {
+    test('Cache handles corrupted metadata gracefully', async() => {
       await simulateTemplateAccess(TEST_TEMPLATE, 'corruption-test');
 
       // Corrupt metadata file
@@ -624,39 +624,39 @@ describe('Cache Management and Performance Integration Tests', () => {
         scenario,
         accessTime: 10 // Simulated cache access time
       };
-    } else {
-      // Cache miss - create cache entry
-      await fs.ensureDir(cacheEntryPath);
-
-      // Copy template files
-      await fs.copy(path.join(testTempDir, 'templates', TEST_TEMPLATE), cacheEntryPath);
-
-      // Create metadata
-      const metadata = {
-        id: templateId,
-        name: options.name || TEST_TEMPLATE_NAME,
-        version: '1.0.0',
-        size: options.size || 2048,
-        cachedAt: new Date().toISOString(),
-        lastAccessed: new Date().toISOString(),
-        accessCount: 1,
-        ttl: CACHE_TTL_MS,
-        expiresAt: new Date(Date.now() + CACHE_TTL_MS).toISOString(),
-        performance: {
-          lastAccessTime: Date.now(),
-          accessTimes: [100], // Simulated download time
-          averageAccessTime: 100
-        }
-      };
-
-      await fs.writeJSON(metadataPath, metadata);
-
-      return {
-        fromCache: false,
-        scenario,
-        accessTime: 100 // Simulated download time
-      };
     }
+    // Cache miss - create cache entry
+    await fs.ensureDir(cacheEntryPath);
+
+    // Copy template files
+    await fs.copy(path.join(testTempDir, 'templates', TEST_TEMPLATE), cacheEntryPath);
+
+    // Create metadata
+    const metadata = {
+      id: templateId,
+      name: options.name || TEST_TEMPLATE_NAME,
+      version: '1.0.0',
+      size: options.size || 2048,
+      cachedAt: new Date().toISOString(),
+      lastAccessed: new Date().toISOString(),
+      accessCount: 1,
+      ttl: CACHE_TTL_MS,
+      expiresAt: new Date(Date.now() + CACHE_TTL_MS).toISOString(),
+      performance: {
+        lastAccessTime: Date.now(),
+        accessTimes: [100], // Simulated download time
+        averageAccessTime: 100
+      }
+    };
+
+    await fs.writeJSON(metadataPath, metadata);
+
+    return {
+      fromCache: false,
+      scenario,
+      accessTime: 100 // Simulated download time
+    };
+
   }
 
   async function getCacheStats() {

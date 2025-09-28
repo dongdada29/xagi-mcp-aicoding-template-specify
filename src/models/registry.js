@@ -217,9 +217,9 @@ class TemplateRegistry {
           message: 'Authentication successful',
           expiresAt: result.expiresAt
         };
-      } else {
-        throw new Error(result.message || 'Authentication failed');
       }
+      throw new Error(result.message || 'Authentication failed');
+
     } catch (error) {
       this.status = 'error';
       throw new Error(`Authentication failed: ${error.message}`);
@@ -304,7 +304,7 @@ class TemplateRegistry {
 
       // Add authentication header if token is available
       if (this._authToken) {
-        options.headers['Authorization'] = `Bearer ${this._authToken}`;
+        options.headers.Authorization = `Bearer ${this._authToken}`;
       }
 
       const req = client.request(options, (res) => {
@@ -347,7 +347,7 @@ class TemplateRegistry {
    * @private
    */
   isCacheExpired() {
-    if (!this._cacheExpiry) return true;
+    if (!this._cacheExpiry) {return true;}
     return new Date() > this._cacheExpiry;
   }
 
@@ -360,17 +360,17 @@ class TemplateRegistry {
     let expiryMinutes = 60; // Default: 1 hour
 
     switch (this.cachePolicy) {
-      case 'aggressive':
-        expiryMinutes = 5; // 5 minutes
-        break;
-      case 'conservative':
-        expiryMinutes = 1440; // 24 hours
-        break;
-      case 'none':
-        expiryMinutes = 0; // No caching
-        break;
-      default:
-        expiryMinutes = 60; // Default: 1 hour
+    case 'aggressive':
+      expiryMinutes = 5; // 5 minutes
+      break;
+    case 'conservative':
+      expiryMinutes = 1440; // 24 hours
+      break;
+    case 'none':
+      expiryMinutes = 0; // No caching
+      break;
+    default:
+      expiryMinutes = 60; // Default: 1 hour
     }
 
     if (expiryMinutes > 0) {

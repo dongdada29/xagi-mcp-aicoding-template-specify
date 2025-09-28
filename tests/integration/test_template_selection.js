@@ -251,7 +251,7 @@ describe('CLI Template Listing and Selection - Integration Tests', () => {
   });
 
   describe('1. CLI List Command Table Format', () => {
-    test('should display available templates in table format', async () => {
+    test('should display available templates in table format', async() => {
       const result = await mockCLI.executeCommand(['list']);
 
       expect(result.exitCode).toBe(0);
@@ -273,7 +273,7 @@ describe('CLI Template Listing and Selection - Integration Tests', () => {
       expect(result.stdout).toContain('Modern React Next.js application');
     });
 
-    test('should support alias command "ls"', async () => {
+    test('should support alias command "ls"', async() => {
       const result = await mockCLI.executeCommand(['ls']);
 
       expect(result.exitCode).toBe(0);
@@ -281,7 +281,7 @@ describe('CLI Template Listing and Selection - Integration Tests', () => {
       expect(result.stdout).toContain('React Next.js AI App');
     });
 
-    test('should return JSON format when --json flag is used', async () => {
+    test('should return JSON format when --json flag is used', async() => {
       const result = await mockCLI.executeCommand(['list', '--json']);
 
       expect(result.exitCode).toBe(0);
@@ -297,7 +297,7 @@ describe('CLI Template Listing and Selection - Integration Tests', () => {
   });
 
   describe('2. Template Type Filtering', () => {
-    test('should filter templates by react-next type', async () => {
+    test('should filter templates by react-next type', async() => {
       const result = await mockCLI.executeCommand(['list', '--type', 'react-next']);
 
       expect(result.exitCode).toBe(0);
@@ -307,7 +307,7 @@ describe('CLI Template Listing and Selection - Integration Tests', () => {
       expect(result.stdout).not.toContain('Vue.js AI Application');
     });
 
-    test('should filter templates by node-api type', async () => {
+    test('should filter templates by node-api type', async() => {
       const result = await mockCLI.executeCommand(['list', '--type', 'node-api']);
 
       expect(result.exitCode).toBe(0);
@@ -317,7 +317,7 @@ describe('CLI Template Listing and Selection - Integration Tests', () => {
       expect(result.stdout).not.toContain('Vue.js AI Application');
     });
 
-    test('should filter templates by vue-app type', async () => {
+    test('should filter templates by vue-app type', async() => {
       const result = await mockCLI.executeCommand(['list', '--type', 'vue-app']);
 
       expect(result.exitCode).toBe(0);
@@ -327,14 +327,14 @@ describe('CLI Template Listing and Selection - Integration Tests', () => {
       expect(result.stdout).not.toContain('Node.js AI API Server');
     });
 
-    test('should handle unknown template type gracefully', async () => {
+    test('should handle unknown template type gracefully', async() => {
       const result = await mockCLI.executeCommand(['list', '--type', 'unknown-type']);
 
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain('No templates found matching your criteria.');
     });
 
-    test('should support type filtering with JSON output', async () => {
+    test('should support type filtering with JSON output', async() => {
       const result = await mockCLI.executeCommand(['list', '--type', 'react-next', '--json']);
 
       expect(result.exitCode).toBe(0);
@@ -348,7 +348,7 @@ describe('CLI Template Listing and Selection - Integration Tests', () => {
   });
 
   describe('3. Search Functionality', () => {
-    test('should search templates by name', async () => {
+    test('should search templates by name', async() => {
       const result = await mockCLI.executeCommand(['list', '--search', 'react']);
 
       expect(result.exitCode).toBe(0);
@@ -358,7 +358,7 @@ describe('CLI Template Listing and Selection - Integration Tests', () => {
       expect(result.stdout).not.toContain('Vue.js AI Application');
     });
 
-    test('should search templates by keywords', async () => {
+    test('should search templates by keywords', async() => {
       const result = await mockCLI.executeCommand(['list', '--search', 'typescript']);
 
       expect(result.exitCode).toBe(0);
@@ -367,7 +367,7 @@ describe('CLI Template Listing and Selection - Integration Tests', () => {
       expect(result.stdout).toContain('Vue.js AI Application');
     });
 
-    test('should search templates by description', async () => {
+    test('should search templates by description', async() => {
       const result = await mockCLI.executeCommand(['list', '--search', 'authentication']);
 
       expect(result.exitCode).toBe(0);
@@ -376,7 +376,7 @@ describe('CLI Template Listing and Selection - Integration Tests', () => {
       expect(result.stdout).not.toContain('Vue.js AI Application');
     });
 
-    test('should be case-insensitive in search', async () => {
+    test('should be case-insensitive in search', async() => {
       const result = await mockCLI.executeCommand(['list', '--search', 'REACT']);
 
       expect(result.exitCode).toBe(0);
@@ -384,21 +384,21 @@ describe('CLI Template Listing and Selection - Integration Tests', () => {
       expect(result.stdout).toContain('React Native AI App');
     });
 
-    test('should handle partial matches in search', async () => {
+    test('should handle partial matches in search', async() => {
       const result = await mockCLI.executeCommand(['list', '--search', 'next']);
 
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain('React Next.js AI App');
     });
 
-    test('should return empty results for no matches', async () => {
+    test('should return empty results for no matches', async() => {
       const result = await mockCLI.executeCommand(['list', '--search', 'nonexistent-template']);
 
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain('No templates found matching your criteria.');
     });
 
-    test('should support search with type filtering', async () => {
+    test('should support search with type filtering', async() => {
       const result = await mockCLI.executeCommand(['list', '--type', 'react-next', '--search', 'ai']);
 
       expect(result.exitCode).toBe(0);
@@ -408,7 +408,7 @@ describe('CLI Template Listing and Selection - Integration Tests', () => {
   });
 
   describe('4. Interactive Selection Prompts', () => {
-    test('should prompt for template selection in interactive mode', async () => {
+    test('should prompt for template selection in interactive mode', async() => {
       const result = await mockCLI.executeCommand(['create']);
 
       expect(result.exitCode).toBe(0);
@@ -419,7 +419,7 @@ describe('CLI Template Listing and Selection - Integration Tests', () => {
       expect(mockCLI.inquirer.prompt).toHaveBeenCalled();
     });
 
-    test('should handle template selection with project details', async () => {
+    test('should handle template selection with project details', async() => {
       const result = await mockCLI.executeCommand(['create']);
 
       expect(result.exitCode).toBe(0);
@@ -427,7 +427,7 @@ describe('CLI Template Listing and Selection - Integration Tests', () => {
       expect(result.stdout).toContain('@xagi/ai-template-react-next-app');
     });
 
-    test('should support direct template creation without prompts', async () => {
+    test('should support direct template creation without prompts', async() => {
       const result = await mockCLI.executeCommand(['create', '@xagi/ai-template-react-next-app']);
 
       expect(result.exitCode).toBe(0);
@@ -439,7 +439,7 @@ describe('CLI Template Listing and Selection - Integration Tests', () => {
   });
 
   describe('5. Template Details Display', () => {
-    test('should display detailed template information', async () => {
+    test('should display detailed template information', async() => {
       const result = await mockCLI.executeCommand(['info', '@xagi/ai-template-react-next-app']);
 
       expect(result.exitCode).toBe(0);
@@ -455,7 +455,7 @@ describe('CLI Template Listing and Selection - Integration Tests', () => {
       expect(result.stdout).toContain('Description: Modern React Next.js application');
     });
 
-    test('should format template details with proper styling', async () => {
+    test('should format template details with proper styling', async() => {
       const result = await mockCLI.executeCommand(['info', '@xagi/ai-template-react-next-app']);
 
       expect(result.exitCode).toBe(0);
@@ -464,7 +464,7 @@ describe('CLI Template Listing and Selection - Integration Tests', () => {
       expect(result.stdout).toContain('Description:'); // Should be styled
     });
 
-    test('should display different template types correctly', async () => {
+    test('should display different template types correctly', async() => {
       const templates = ['@xagi/ai-template-react-next-app', '@xagi/ai-template-node-api', '@xagi/ai-template-vue-app'];
 
       for (const templateId of templates) {
@@ -479,42 +479,42 @@ describe('CLI Template Listing and Selection - Integration Tests', () => {
   });
 
   describe('6. Error Handling for Invalid Templates', () => {
-    test('should handle invalid template names in info command', async () => {
+    test('should handle invalid template names in info command', async() => {
       const result = await mockCLI.executeCommand(['info', '@invalid/template-name']);
 
       expect(result.exitCode).toBe(1);
       expect(result.stderr).toContain('Template "@invalid/template-name" not found');
     });
 
-    test('should handle invalid template names in create command', async () => {
+    test('should handle invalid template names in create command', async() => {
       const result = await mockCLI.executeCommand(['create', '@invalid/template-name']);
 
       expect(result.exitCode).toBe(1);
       expect(result.stderr).toContain('Template "@invalid/template-name" not found');
     });
 
-    test('should handle missing template name in info command', async () => {
+    test('should handle missing template name in info command', async() => {
       const result = await mockCLI.executeCommand(['info']);
 
       expect(result.exitCode).toBe(1);
       expect(result.stderr).toContain('Template "undefined" not found');
     });
 
-    test('should handle malformed template IDs', async () => {
+    test('should handle malformed template IDs', async() => {
       const result = await mockCLI.executeCommand(['info', 'malformed-template-id']);
 
       expect(result.exitCode).toBe(1);
       expect(result.stderr).toContain('Template "malformed-template-id" not found');
     });
 
-    test('should handle empty template names', async () => {
+    test('should handle empty template names', async() => {
       const result = await mockCLI.executeCommand(['info', '']);
 
       expect(result.exitCode).toBe(1);
       expect(result.stderr).toContain('Template "" not found');
     });
 
-    test('should handle special characters in template names', async () => {
+    test('should handle special characters in template names', async() => {
       const result = await mockCLI.executeCommand(['info', '@invalid/template@name']);
 
       expect(result.exitCode).toBe(1);
@@ -523,7 +523,7 @@ describe('CLI Template Listing and Selection - Integration Tests', () => {
   });
 
   describe('7. Combined Operations and Edge Cases', () => {
-    test('should handle combined type and search filters', async () => {
+    test('should handle combined type and search filters', async() => {
       const result = await mockCLI.executeCommand(['list', '--type', 'react-next', '--search', 'ai']);
 
       expect(result.exitCode).toBe(0);
@@ -531,14 +531,14 @@ describe('CLI Template Listing and Selection - Integration Tests', () => {
       expect(result.stdout).not.toContain('Node.js AI API Server');
     });
 
-    test('should handle empty filter results gracefully', async () => {
+    test('should handle empty filter results gracefully', async() => {
       const result = await mockCLI.executeCommand(['list', '--type', 'nonexistent-type', '--search', 'nonexistent-term']);
 
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain('No templates found matching your criteria.');
     });
 
-    test('should handle very long search terms', async () => {
+    test('should handle very long search terms', async() => {
       const longSearchTerm = 'a'.repeat(1000);
       const result = await mockCLI.executeCommand(['list', '--search', longSearchTerm]);
 
@@ -546,14 +546,14 @@ describe('CLI Template Listing and Selection - Integration Tests', () => {
       expect(result.stdout).toContain('No templates found matching your criteria.');
     });
 
-    test('should handle special characters in search terms', async () => {
+    test('should handle special characters in search terms', async() => {
       const result = await mockCLI.executeCommand(['list', '--search', 'AI-powered features!']);
 
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain('React Next.js AI App');
     });
 
-    test('should handle Unicode characters in search terms', async () => {
+    test('should handle Unicode characters in search terms', async() => {
       const result = await mockCLI.executeCommand(['list', '--search', 'react']);
 
       expect(result.exitCode).toBe(0);
@@ -562,7 +562,7 @@ describe('CLI Template Listing and Selection - Integration Tests', () => {
   });
 
   describe('8. Performance and Output Validation', () => {
-    test('should generate consistent table formatting', async () => {
+    test('should generate consistent table formatting', async() => {
       const result1 = await mockCLI.executeCommand(['list']);
       const result2 = await mockCLI.executeCommand(['list']);
 
@@ -571,7 +571,7 @@ describe('CLI Template Listing and Selection - Integration Tests', () => {
       expect(result1.stdout).toContain('─'.repeat(80));
     });
 
-    test('should maintain proper output formatting with filters', async () => {
+    test('should maintain proper output formatting with filters', async() => {
       const result = await mockCLI.executeCommand(['list', '--type', 'react-next']);
 
       expect(result.exitCode).toBe(0);
@@ -580,7 +580,7 @@ describe('CLI Template Listing and Selection - Integration Tests', () => {
       expect(result.stdout).toContain('─'.repeat(80));
     });
 
-    test('should handle large number of templates efficiently', async () => {
+    test('should handle large number of templates efficiently', async() => {
       // Add more templates to test performance
       mockTemplates.push(...Array.from({ length: 50 }, (_, i) => ({
         id: `@test/template-${i}`,

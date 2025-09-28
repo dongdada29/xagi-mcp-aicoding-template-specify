@@ -33,7 +33,7 @@ const mockTemplates = [
 describe('GET /templates - Contract Tests', () => {
 
   describe('1. Basic endpoint functionality', () => {
-    test('should return 200 status code', async () => {
+    test('should return 200 status code', async() => {
       const response = await request(app)
         .get('/templates')
         .expect(200);
@@ -42,7 +42,7 @@ describe('GET /templates - Contract Tests', () => {
       expect(response.status).toBe(200);
     });
 
-    test('should return proper JSON format', async () => {
+    test('should return proper JSON format', async() => {
       const response = await request(app)
         .get('/templates')
         .expect('Content-Type', /json/);
@@ -53,7 +53,7 @@ describe('GET /templates - Contract Tests', () => {
   });
 
   describe('2. Response structure validation', () => {
-    test('should return array of templates', async () => {
+    test('should return array of templates', async() => {
       const response = await request(app)
         .get('/templates');
 
@@ -61,7 +61,7 @@ describe('GET /templates - Contract Tests', () => {
       expect(Array.isArray(response.body)).toBe(true);
     });
 
-    test('each template should have required fields', async () => {
+    test('each template should have required fields', async() => {
       const response = await request(app)
         .get('/templates');
 
@@ -89,7 +89,7 @@ describe('GET /templates - Contract Tests', () => {
       });
     });
 
-    test('template versions should follow semantic versioning', async () => {
+    test('template versions should follow semantic versioning', async() => {
       const response = await request(app)
         .get('/templates');
 
@@ -102,7 +102,7 @@ describe('GET /templates - Contract Tests', () => {
   });
 
   describe('3. Registry filtering functionality', () => {
-    test('should support filtering by registry query parameter', async () => {
+    test('should support filtering by registry query parameter', async() => {
       const response = await request(app)
         .get('/templates')
         .query({ registry: 'official' });
@@ -116,7 +116,7 @@ describe('GET /templates - Contract Tests', () => {
       });
     });
 
-    test('should handle unknown registry gracefully', async () => {
+    test('should handle unknown registry gracefully', async() => {
       const response = await request(app)
         .get('/templates')
         .query({ registry: 'unknown-registry' });
@@ -127,7 +127,7 @@ describe('GET /templates - Contract Tests', () => {
       expect(response.body).toEqual([]);
     });
 
-    test('should handle missing registry parameter', async () => {
+    test('should handle missing registry parameter', async() => {
       const response = await request(app)
         .get('/templates');
 
@@ -137,7 +137,7 @@ describe('GET /templates - Contract Tests', () => {
   });
 
   describe('4. Type filtering functionality', () => {
-    test('should support filtering by type query parameter', async () => {
+    test('should support filtering by type query parameter', async() => {
       const response = await request(app)
         .get('/templates')
         .query({ type: 'frontend' });
@@ -151,7 +151,7 @@ describe('GET /templates - Contract Tests', () => {
       });
     });
 
-    test('should filter by different types', async () => {
+    test('should filter by different types', async() => {
       const types = ['frontend', 'backend', 'fullstack'];
 
       for (const type of types) {
@@ -168,7 +168,7 @@ describe('GET /templates - Contract Tests', () => {
       }
     });
 
-    test('should handle unknown type gracefully', async () => {
+    test('should handle unknown type gracefully', async() => {
       const response = await request(app)
         .get('/templates')
         .query({ type: 'unknown-type' });
@@ -180,7 +180,7 @@ describe('GET /templates - Contract Tests', () => {
   });
 
   describe('5. Search functionality', () => {
-    test('should support search functionality', async () => {
+    test('should support search functionality', async() => {
       const response = await request(app)
         .get('/templates')
         .query({ search: 'react' });
@@ -197,7 +197,7 @@ describe('GET /templates - Contract Tests', () => {
       });
     });
 
-    test('should be case-insensitive in search', async () => {
+    test('should be case-insensitive in search', async() => {
       const searchTerm = 'REACT';
       const response = await request(app)
         .get('/templates')
@@ -214,7 +214,7 @@ describe('GET /templates - Contract Tests', () => {
       });
     });
 
-    test('should handle partial matches', async () => {
+    test('should handle partial matches', async() => {
       const response = await request(app)
         .get('/templates')
         .query({ search: 'starter' });
@@ -223,7 +223,7 @@ describe('GET /templates - Contract Tests', () => {
       expect(Array.isArray(response.body)).toBe(true);
     });
 
-    test('should return empty array for no matches', async () => {
+    test('should return empty array for no matches', async() => {
       const response = await request(app)
         .get('/templates')
         .query({ search: 'nonexistent-template-name' });
@@ -235,7 +235,7 @@ describe('GET /templates - Contract Tests', () => {
   });
 
   describe('6. Combined filtering functionality', () => {
-    test('should support combined registry and type filtering', async () => {
+    test('should support combined registry and type filtering', async() => {
       const response = await request(app)
         .get('/templates')
         .query({ registry: 'official', type: 'frontend' });
@@ -249,7 +249,7 @@ describe('GET /templates - Contract Tests', () => {
       });
     });
 
-    test('should support search with type filtering', async () => {
+    test('should support search with type filtering', async() => {
       const response = await request(app)
         .get('/templates')
         .query({ search: 'react', type: 'frontend' });
@@ -266,7 +266,7 @@ describe('GET /templates - Contract Tests', () => {
       });
     });
 
-    test('should support all filters combined', async () => {
+    test('should support all filters combined', async() => {
       const response = await request(app)
         .get('/templates')
         .query({ registry: 'official', type: 'frontend', search: 'react' });
@@ -286,7 +286,7 @@ describe('GET /templates - Contract Tests', () => {
   });
 
   describe('7. Error handling and edge cases', () => {
-    test('should handle malformed query parameters', async () => {
+    test('should handle malformed query parameters', async() => {
       const response = await request(app)
         .get('/templates')
         .query({ type: 'frontend&malformed=value' });
@@ -295,7 +295,7 @@ describe('GET /templates - Contract Tests', () => {
       expect(response.status).toBe(200);
     });
 
-    test('should handle empty query parameters', async () => {
+    test('should handle empty query parameters', async() => {
       const response = await request(app)
         .get('/templates')
         .query({ type: '', search: '' });
@@ -304,7 +304,7 @@ describe('GET /templates - Contract Tests', () => {
       expect(Array.isArray(response.body)).toBe(true);
     });
 
-    test('should handle very large search terms', async () => {
+    test('should handle very large search terms', async() => {
       const longSearchTerm = 'a'.repeat(1000);
       const response = await request(app)
         .get('/templates')
@@ -318,7 +318,7 @@ describe('GET /templates - Contract Tests', () => {
   });
 
   describe('8. Performance and pagination considerations', () => {
-    test('should handle large number of templates efficiently', async () => {
+    test('should handle large number of templates efficiently', async() => {
       const response = await request(app)
         .get('/templates');
 
@@ -331,7 +331,7 @@ describe('GET /templates - Contract Tests', () => {
       expect(response.body.length).toBeLessThanOrEqual(100);
     });
 
-    test('should include pagination metadata when implemented', async () => {
+    test('should include pagination metadata when implemented', async() => {
       const response = await request(app)
         .get('/templates');
 

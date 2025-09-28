@@ -9,13 +9,13 @@ try {
   cacheService = require('../../../src/services/cacheService');
   jest.mock('../../../src/services/cacheService', () => ({
     getCacheEntries: jest.fn(),
-    getCacheStats: jest.fn(),
+    getCacheStats: jest.fn()
   }));
 } catch (error) {
   // Create a mock service if the real one doesn't exist
   cacheService = {
     getCacheEntries: jest.fn(),
-    getCacheStats: jest.fn(),
+    getCacheStats: jest.fn()
   };
 }
 
@@ -37,7 +37,7 @@ describe('GET /cache endpoint', () => {
   let app;
   let testCacheDir;
 
-  beforeEach(async () => {
+  beforeEach(async() => {
     app = createTestApp();
     testCacheDir = path.join('/tmp', `cache-test-${Date.now()}`);
     await fs.ensureDir(testCacheDir);
@@ -84,13 +84,13 @@ describe('GET /cache endpoint', () => {
     });
   });
 
-  afterEach(async () => {
+  afterEach(async() => {
     await fs.remove(testCacheDir);
     jest.clearAllMocks();
   });
 
   describe('Success scenarios', () => {
-    test('should return 200 status code', async () => {
+    test('should return 200 status code', async() => {
       const response = await request(app)
         .get('/cache')
         .expect('Content-Type', /json/);
@@ -99,7 +99,7 @@ describe('GET /cache endpoint', () => {
       expect(response.status).toBe(200);
     });
 
-    test('should return array of cached templates', async () => {
+    test('should return array of cached templates', async() => {
       const response = await request(app)
         .get('/cache')
         .expect(200);
@@ -119,7 +119,7 @@ describe('GET /cache endpoint', () => {
       });
     });
 
-    test('should show cache metadata', async () => {
+    test('should show cache metadata', async() => {
       const response = await request(app)
         .get('/cache')
         .expect(200);
@@ -136,7 +136,7 @@ describe('GET /cache endpoint', () => {
       expect(response.body.metadata.lastUpdated).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z$/);
     });
 
-    test('should support filtering by template', async () => {
+    test('should support filtering by template', async() => {
       const response = await request(app)
         .get('/cache?template=react-next')
         .expect(200);
@@ -150,7 +150,7 @@ describe('GET /cache endpoint', () => {
       });
     });
 
-    test('should support filtering by version', async () => {
+    test('should support filtering by version', async() => {
       const response = await request(app)
         .get('/cache?version=1.0.0')
         .expect(200);
@@ -163,7 +163,7 @@ describe('GET /cache endpoint', () => {
       });
     });
 
-    test('should support sorting by different fields', async () => {
+    test('should support sorting by different fields', async() => {
       const sortByFields = ['name', 'size', 'accessCount', 'lastAccessed'];
 
       for (const field of sortByFields) {
@@ -178,7 +178,7 @@ describe('GET /cache endpoint', () => {
   });
 
   describe('Error scenarios', () => {
-    test('should handle cache service errors gracefully', async () => {
+    test('should handle cache service errors gracefully', async() => {
       cacheService.getCacheEntries.mockRejectedValue(new Error('Cache service unavailable'));
 
       const response = await request(app)
@@ -189,7 +189,7 @@ describe('GET /cache endpoint', () => {
       expect(response.body.error).toBe('Failed to retrieve cache entries');
     });
 
-    test('should handle invalid filter parameters', async () => {
+    test('should handle invalid filter parameters', async() => {
       const response = await request(app)
         .get('/cache?template=invalid<>template&version=invalid.version')
         .expect(400);
@@ -198,7 +198,7 @@ describe('GET /cache endpoint', () => {
       expect(response.body.error).toContain('Invalid filter parameters');
     });
 
-    test('should handle invalid sort parameters', async () => {
+    test('should handle invalid sort parameters', async() => {
       const response = await request(app)
         .get('/cache?sortBy=invalidField')
         .expect(400);
@@ -209,7 +209,7 @@ describe('GET /cache endpoint', () => {
   });
 
   describe('Response format validation', () => {
-    test('should return proper JSON format', async () => {
+    test('should return proper JSON format', async() => {
       const response = await request(app)
         .get('/cache')
         .expect(200);
@@ -227,7 +227,7 @@ describe('GET /cache endpoint', () => {
       expect(Array.isArray(response.body.filters.applied)).toBe(true);
     });
 
-    test('should include pagination information', async () => {
+    test('should include pagination information', async() => {
       const response = await request(app)
         .get('/cache?page=1&limit=10')
         .expect(200);
@@ -244,7 +244,7 @@ describe('GET /cache endpoint', () => {
   });
 
   describe('Performance and edge cases', () => {
-    test('should handle empty cache', async () => {
+    test('should handle empty cache', async() => {
       cacheService.getCacheEntries.mockResolvedValue([]);
       cacheService.getCacheStats.mockResolvedValue({
         totalSize: 0,
@@ -261,7 +261,7 @@ describe('GET /cache endpoint', () => {
       expect(response.body.metadata.totalSize).toBe(0);
     });
 
-    test('should handle large cache responses efficiently', async () => {
+    test('should handle large cache responses efficiently', async() => {
       // Mock 1000 cache entries
       const largeCacheEntries = Array.from({ length: 1000 }, (_, i) => ({
         id: `template-${i}@1.0.0`,

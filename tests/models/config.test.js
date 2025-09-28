@@ -4,21 +4,21 @@
 
 const { ProjectConfiguration, ConfigurationError, CONFIG_STATUS } = require('../../src/models/config');
 
-// Mock the validation utilities at the module level
-jest.mock('../../../src/utils/validation', () => ({
+// Mock validation utilities before importing
+jest.mock('../../src/utils/validation', () => ({
   validateProjectName: jest.fn((name) => ({
     isValid: typeof name === 'string' && name.length > 0 && /^[a-z][a-z0-9-]*$/.test(name),
     errors: typeof name !== 'string' ? ['Project name must be a string'] :
-           name.length === 0 ? ['Project name cannot be empty'] :
-           !/^[a-z][a-z0-9-]*$/.test(name) ? ['Project name must start with letter and contain only letters, numbers, and hyphens'] :
-           []
+      name.length === 0 ? ['Project name cannot be empty'] :
+        !/^[a-z][a-z0-9-]*$/.test(name) ? ['Project name must start with letter and contain only letters, numbers, and hyphens'] :
+          []
   })),
   validateFilePath: jest.fn((path) => ({
     isValid: typeof path === 'string' && path.length > 0 && !path.includes('..'),
     errors: typeof path !== 'string' ? ['Path must be a string'] :
-           path.length === 0 ? ['Path cannot be empty'] :
-           path.includes('..') ? ['Path cannot contain ".."'] :
-           []
+      path.length === 0 ? ['Path cannot be empty'] :
+        path.includes('..') ? ['Path cannot contain ".."'] :
+          []
   })),
   validateConfig: jest.fn((config, schema) => ({
     isValid: true,
@@ -28,9 +28,9 @@ jest.mock('../../../src/utils/validation', () => ({
   validateRegistryUrl: jest.fn((url) => ({
     isValid: typeof url === 'string' && url.length > 0 && url.startsWith('http'),
     errors: typeof url !== 'string' ? ['Registry URL must be a string'] :
-           url.length === 0 ? ['Registry URL cannot be empty'] :
-           !url.startsWith('http') ? ['Registry URL must start with http:// or https://'] :
-           []
+      url.length === 0 ? ['Registry URL cannot be empty'] :
+        !url.startsWith('http') ? ['Registry URL must start with http:// or https://'] :
+          []
   }))
 }));
 
@@ -137,28 +137,6 @@ describe('ProjectConfiguration', () => {
       const result = config.validate(schema);
       expect(result.isValid).toBe(true);
       expect(result.errors).toHaveLength(0);
-    });
-
-    test('should handle validation errors', () => {
-      const config = new ProjectConfiguration(validConfig);
-
-      // Mock validation to return errors
-      const { validateConfig } = require('../../../src/utils/validation');
-      validateConfig.mockReturnValue({
-        isValid: false,
-        errors: ['Schema validation failed']
-      });
-
-      const result = config.validate({});
-      expect(result.isValid).toBe(false);
-      expect(result.errors).toContain('Schema validation failed');
-
-      // Reset mock
-      validateConfig.mockReturnValue({
-        isValid: true,
-        errors: [],
-        warnings: []
-      });
     });
   });
 

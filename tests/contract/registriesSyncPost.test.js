@@ -42,7 +42,7 @@ describe('POST /registries/sync', () => {
     syncStatus: 'completed'
   };
 
-  beforeEach(async () => {
+  beforeEach(async() => {
     // Skip tests if app or Registry is not available
     if (!app || !Registry) {
       return;
@@ -54,7 +54,7 @@ describe('POST /registries/sync', () => {
     }
   });
 
-  test('should return 200 status code for successful sync', async () => {
+  test('should return 200 status code for successful sync', async() => {
     if (!app || !Registry) {
       throw new Error('Server not implemented - missing app or Registry model');
     }
@@ -67,7 +67,7 @@ describe('POST /registries/sync', () => {
     expect(response.status).toBe(200);
   });
 
-  test('should return updated registry information', async () => {
+  test('should return updated registry information', async() => {
     if (!app || !Registry) {
       throw new Error('Server not implemented - missing app or Registry model');
     }
@@ -88,7 +88,7 @@ describe('POST /registries/sync', () => {
     );
   });
 
-  test('should handle network errors gracefully', async () => {
+  test('should handle network errors gracefully', async() => {
     if (!app || !Registry) {
       throw new Error('Server not implemented - missing app or Registry model');
     }
@@ -107,7 +107,7 @@ describe('POST /registries/sync', () => {
     );
   });
 
-  test('should update last sync timestamp', async () => {
+  test('should update last sync timestamp', async() => {
     if (!app || !Registry) {
       throw new Error('Server not implemented - missing app or Registry model');
     }
@@ -128,7 +128,7 @@ describe('POST /registries/sync', () => {
     expect(syncTime.getTime()).toBeLessThanOrEqual(Date.now() + 1000);
   });
 
-  test('should return sync status and statistics', async () => {
+  test('should return sync status and statistics', async() => {
     if (!app || !Registry) {
       throw new Error('Server not implemented - missing app or Registry model');
     }
@@ -160,7 +160,7 @@ describe('POST /registries/sync', () => {
     expect(response.body.packagesDeleted).toBeGreaterThanOrEqual(0);
   });
 
-  test('should validate required registryId parameter', async () => {
+  test('should validate required registryId parameter', async() => {
     if (!app || !Registry) {
       throw new Error('Server not implemented - missing app or Registry model');
     }
@@ -178,7 +178,7 @@ describe('POST /registries/sync', () => {
     );
   });
 
-  test('should handle non-existent registry', async () => {
+  test('should handle non-existent registry', async() => {
     if (!app || !Registry) {
       throw new Error('Server not implemented - missing app or Registry model');
     }
@@ -196,7 +196,7 @@ describe('POST /registries/sync', () => {
     );
   });
 
-  test('should return 409 if sync already in progress', async () => {
+  test('should return 409 if sync already in progress', async() => {
     if (!app || !Registry) {
       throw new Error('Server not implemented - missing app or Registry model');
     }

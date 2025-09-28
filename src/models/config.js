@@ -214,18 +214,18 @@ class ProjectConfiguration {
     // Set nested property support
     if (key.includes('.')) {
       const keys = key.split('.');
-      const current = this.configValues;
+      let current = this.configValues;
 
       // Navigate to parent object
       for (let i = 0; i < keys.length - 1; i++) {
         if (!current[keys[i]] || typeof current[keys[i]] !== 'object') {
           current[keys[i]] = {};
         }
-        keys[i] = current[keys[i]];
+        current = current[keys[i]];
       }
 
       // Set the final value
-      keys[keys.length - 1] = value;
+      current[keys[keys.length - 1]] = value;
     } else {
       this.configValues[key] = value;
     }
@@ -237,7 +237,7 @@ class ProjectConfiguration {
    * @param {any} defaultValue - Default value if key not found
    * @returns {any} Configuration value
    */
-  getConfig(key, defaultValue = undefined) {
+  getConfig(key, defaultValue) {
     if (!key || typeof key !== 'string') {
       return defaultValue;
     }
@@ -280,7 +280,7 @@ class ProjectConfiguration {
    * @param {any} defaultValue - Default value if key not found
    * @returns {any} Override value
    */
-  getOverride(key, defaultValue = undefined) {
+  getOverride(key, defaultValue) {
     if (!key || typeof key !== 'string') {
       return defaultValue;
     }
@@ -330,13 +330,13 @@ class ProjectConfiguration {
   clone(overrides = {}) {
     const configData = {
       ...this.toJSON(),
-      id: overrides.id || undefined, // Generate new ID unless specified
+      id: overrides.id, // Generate new ID unless specified
       ...overrides
     };
 
     // Remove undefined values
     Object.keys(configData).forEach(key => {
-      if (configData[key] === undefined) {
+      if (typeof configData[key] === 'undefined') {
         delete configData[key];
       }
     });

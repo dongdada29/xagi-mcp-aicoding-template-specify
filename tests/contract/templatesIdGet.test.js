@@ -38,14 +38,14 @@ describe('GET /templates/{id}', () => {
     updatedAt: '2024-03-20T14:45:00Z'
   };
 
-  beforeEach(async () => {
+  beforeEach(async() => {
     // Clear any existing test data
     if (Template && Template.deleteMany) {
       await Template.deleteMany({});
     }
   });
 
-  test('should return 200 status code for existing template', async () => {
+  test('should return 200 status code for existing template', async() => {
     if (!app || !Template) {
       throw new Error('Server not implemented - missing app or Template model');
     }
@@ -57,7 +57,7 @@ describe('GET /templates/{id}', () => {
     expect(response.status).toBe(200);
   });
 
-  test('should return 404 status code for non-existent template', async () => {
+  test('should return 404 status code for non-existent template', async() => {
     if (!app || !Template) {
       throw new Error('Server not implemented - missing app or Template model');
     }
@@ -68,7 +68,7 @@ describe('GET /templates/{id}', () => {
     expect(response.status).toBe(404);
   });
 
-  test('should return template details with all required fields', async () => {
+  test('should return template details with all required fields', async() => {
     if (!app || !Template) {
       throw new Error('Server not implemented - missing app or Template model');
     }
@@ -97,7 +97,7 @@ describe('GET /templates/{id}', () => {
     expect(response.body.description).toBeTruthy();
   });
 
-  test('should support specific template versions', async () => {
+  test('should support specific template versions', async() => {
     if (!app || !Template) {
       throw new Error('Server not implemented - missing app or Template model');
     }
@@ -115,7 +115,7 @@ describe('GET /templates/{id}', () => {
     );
   });
 
-  test('should return proper JSON format', async () => {
+  test('should return proper JSON format', async() => {
     if (!app || !Template) {
       throw new Error('Server not implemented - missing app or Template model');
     }
@@ -132,7 +132,7 @@ describe('GET /templates/{id}', () => {
     expect(response.headers['content-type']).toMatch(/application\/json/);
   });
 
-  test('should return template with correct structure according to contract', async () => {
+  test('should return template with correct structure according to contract', async() => {
     if (!app || !Template) {
       throw new Error('Server not implemented - missing app or Template model');
     }
@@ -158,7 +158,7 @@ describe('GET /templates/{id}', () => {
     );
   });
 
-  test('should handle version parameter validation', async () => {
+  test('should handle version parameter validation', async() => {
     if (!app || !Template) {
       throw new Error('Server not implemented - missing app or Template model');
     }
@@ -177,7 +177,7 @@ describe('GET /templates/{id}', () => {
     );
   });
 
-  test('should handle missing template gracefully', async () => {
+  test('should handle missing template gracefully', async() => {
     if (!app || !Template) {
       throw new Error('Server not implemented - missing app or Template model');
     }
@@ -194,7 +194,7 @@ describe('GET /templates/{id}', () => {
     );
   });
 
-  test('should return 404 for template with invalid ID format', async () => {
+  test('should return 404 for template with invalid ID format', async() => {
     if (!app || !Template) {
       throw new Error('Server not implemented - missing app or Template model');
     }
@@ -205,7 +205,7 @@ describe('GET /templates/{id}', () => {
     expect(response.status).toBe(404);
   });
 
-  test('should handle case-sensitive template IDs correctly', async () => {
+  test('should handle case-sensitive template IDs correctly', async() => {
     if (!app || !Template) {
       throw new Error('Server not implemented - missing app or Template model');
     }
@@ -226,7 +226,7 @@ describe('GET /templates/{id}', () => {
     }
   });
 
-  test('should include metadata for version queries', async () => {
+  test('should include metadata for version queries', async() => {
     if (!app || !Template) {
       throw new Error('Server not implemented - missing app or Template model');
     }

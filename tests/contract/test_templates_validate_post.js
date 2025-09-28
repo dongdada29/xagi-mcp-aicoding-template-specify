@@ -90,7 +90,7 @@ describe('POST /templates/validate', () => {
       author: 'Test Author',
       engines: {
         node: '>=16.0.0', // Below minimum requirement
-        npm: '>=6.0.0'    // Below minimum requirement
+        npm: '>=6.0.0' // Below minimum requirement
       }
     }
   };
@@ -115,12 +115,12 @@ describe('POST /templates/validate', () => {
     'README.md': '# Template README\nThis is a sample template.'
   };
 
-  beforeEach(async () => {
+  beforeEach(async() => {
     // Clean up any test directories
     jest.clearAllMocks();
   });
 
-  test('should return 200 status code for valid template', async () => {
+  test('should return 200 status code for valid template', async() => {
     const response = await request(app)
       .post('/templates/validate')
       .send({
@@ -137,7 +137,7 @@ describe('POST /templates/validate', () => {
     );
   });
 
-  test('should return 400 status code for invalid template', async () => {
+  test('should return 400 status code for invalid template', async() => {
     const response = await request(app)
       .post('/templates/validate')
       .send({
@@ -155,7 +155,7 @@ describe('POST /templates/validate', () => {
     );
   });
 
-  test('should validate template package structure', async () => {
+  test('should validate template package structure', async() => {
     const response = await request(app)
       .post('/templates/validate')
       .send({
@@ -173,7 +173,7 @@ describe('POST /templates/validate', () => {
     );
   });
 
-  test('should validate template naming convention (@xagi/ai-template-{type})', async () => {
+  test('should validate template naming convention (@xagi/ai-template-{type})', async() => {
     const response = await request(app)
       .post('/templates/validate')
       .send({
@@ -191,7 +191,7 @@ describe('POST /templates/validate', () => {
     );
   });
 
-  test('should validate required metadata fields', async () => {
+  test('should validate required metadata fields', async() => {
     const response = await request(app)
       .post('/templates/validate')
       .send({
@@ -209,7 +209,7 @@ describe('POST /templates/validate', () => {
     );
   });
 
-  test('should validate version format', async () => {
+  test('should validate version format', async() => {
     const response = await request(app)
       .post('/templates/validate')
       .send({
@@ -227,7 +227,7 @@ describe('POST /templates/validate', () => {
     );
   });
 
-  test('should validate xagi metadata section', async () => {
+  test('should validate xagi metadata section', async() => {
     const response = await request(app)
       .post('/templates/validate')
       .send({
@@ -245,7 +245,7 @@ describe('POST /templates/validate', () => {
     );
   });
 
-  test('should validate engine requirements', async () => {
+  test('should validate engine requirements', async() => {
     const response = await request(app)
       .post('/templates/validate')
       .send({
@@ -263,7 +263,7 @@ describe('POST /templates/validate', () => {
     );
   });
 
-  test('should return detailed validation results for valid template', async () => {
+  test('should return detailed validation results for valid template', async() => {
     const response = await request(app)
       .post('/templates/validate')
       .send({
@@ -298,7 +298,7 @@ describe('POST /templates/validate', () => {
     );
   });
 
-  test('should return proper error messages for validation failures', async () => {
+  test('should return proper error messages for validation failures', async() => {
     const response = await request(app)
       .post('/templates/validate')
       .send({
@@ -314,7 +314,7 @@ describe('POST /templates/validate', () => {
     expect(response.body.message.length).toBeGreaterThan(0);
   });
 
-  test('should handle missing request body', async () => {
+  test('should handle missing request body', async() => {
     const response = await request(app)
       .post('/templates/validate')
       .send({});
@@ -329,7 +329,7 @@ describe('POST /templates/validate', () => {
     );
   });
 
-  test('should handle invalid JSON structure', async () => {
+  test('should handle invalid JSON structure', async() => {
     const response = await request(app)
       .post('/templates/validate')
       .send({
@@ -347,7 +347,7 @@ describe('POST /templates/validate', () => {
     );
   });
 
-  test('should validate template type is supported', async () => {
+  test('should validate template type is supported', async() => {
     const unsupportedTypeTemplate = {
       ...validTemplate,
       name: '@xagi/ai-template-unsupported-type',
@@ -371,7 +371,7 @@ describe('POST /templates/validate', () => {
     );
   });
 
-  test('should validate repository URL format', async () => {
+  test('should validate repository URL format', async() => {
     const invalidRepoTemplate = {
       ...validTemplate,
       repository: {
@@ -397,7 +397,7 @@ describe('POST /templates/validate', () => {
     );
   });
 
-  test('should validate files array contains required files', async () => {
+  test('should validate files array contains required files', async() => {
     const invalidFilesTemplate = {
       ...validTemplate,
       files: ['optional-file.js'] // Missing required files
@@ -420,7 +420,7 @@ describe('POST /templates/validate', () => {
     );
   });
 
-  test('should handle templates with complex nested structure', async () => {
+  test('should handle templates with complex nested structure', async() => {
     const complexStructure = {
       'package.json': JSON.stringify(validTemplate, null, 2),
       'src/': {

@@ -13,8 +13,8 @@ jest.mock('simple-git', () => ({
   default: () => ({
     clone: jest.fn(),
     checkout: jest.fn(),
-    clean: jest.fn(),
-  }),
+    clean: jest.fn()
+  })
 }));
 
 jest.mock('ora', () => ({
@@ -24,15 +24,15 @@ jest.mock('ora', () => ({
     succeed: jest.fn().mockReturnThis(),
     fail: jest.fn().mockReturnThis(),
     info: jest.fn().mockReturnThis(),
-    stop: jest.fn().mockReturnThis(),
-  }),
+    stop: jest.fn().mockReturnThis()
+  })
 }));
 
 jest.mock('inquirer', () => ({
   __esModule: true,
   default: {
-    prompt: jest.fn(),
-  },
+    prompt: jest.fn()
+  }
 }));
 
 // Mock template registry data
@@ -111,29 +111,29 @@ describe('Node.js API Project Creation Integration Tests', () => {
       const answers = {};
       questions.forEach(question => {
         switch (question.name) {
-          case 'projectName':
-            answers.projectName = 'test-project';
-            break;
-          case 'includeTypeScript':
-            answers.includeTypeScript = true;
-            break;
-          case 'includeDatabase':
-            answers.includeDatabase = true;
-            break;
-          case 'includeAuth':
-            answers.includeAuth = true;
-            break;
-          case 'includeTesting':
-            answers.includeTesting = true;
-            break;
-          case 'includeDocker':
-            answers.includeDocker = true;
-            break;
-          case 'port':
-            answers.port = 3000;
-            break;
-          default:
-            answers[question.name] = question.default || true;
+        case 'projectName':
+          answers.projectName = 'test-project';
+          break;
+        case 'includeTypeScript':
+          answers.includeTypeScript = true;
+          break;
+        case 'includeDatabase':
+          answers.includeDatabase = true;
+          break;
+        case 'includeAuth':
+          answers.includeAuth = true;
+          break;
+        case 'includeTesting':
+          answers.includeTesting = true;
+          break;
+        case 'includeDocker':
+          answers.includeDocker = true;
+          break;
+        case 'port':
+          answers.port = 3000;
+          break;
+        default:
+          answers[question.name] = question.default || true;
         }
       });
       return Promise.resolve(answers);
@@ -162,7 +162,7 @@ describe('Node.js API Project Creation Integration Tests', () => {
   });
 
   describe('1. CLI create command functionality', () => {
-    test('should execute create command with Node.js API template', async () => {
+    test('should execute create command with Node.js API template', async() => {
       // This test will fail until the CLI create command is implemented
       expect(() => {
         // Try to import and execute the create command
@@ -188,7 +188,7 @@ describe('Node.js API Project Creation Integration Tests', () => {
       }).toThrow('CLI create command not implemented');
     });
 
-    test('should handle missing template argument gracefully', async () => {
+    test('should handle missing template argument gracefully', async() => {
       // This test validates error handling for missing template
       expect(() => {
         // Simulate missing template argument
@@ -198,7 +198,7 @@ describe('Node.js API Project Creation Integration Tests', () => {
   });
 
   describe('2. Project structure validation', () => {
-    test('should create correct project directory structure', async () => {
+    test('should create correct project directory structure', async() => {
       // This test will fail until project creation is implemented
       const projectPath = path.join(tempDir, 'test-project');
 
@@ -226,7 +226,7 @@ describe('Node.js API Project Creation Integration Tests', () => {
       });
     });
 
-    test('should create src directory with proper structure', async () => {
+    test('should create src directory with proper structure', async() => {
       const srcPath = path.join(tempDir, 'test-project', 'src');
 
       // Check that src directory exists
@@ -241,7 +241,7 @@ describe('Node.js API Project Creation Integration Tests', () => {
   });
 
   describe('3. Express framework configuration', () => {
-    test('should configure Express.js with proper middleware', async () => {
+    test('should configure Express.js with proper middleware', async() => {
       const serverPath = path.join(tempDir, 'test-project', 'src', 'server.js');
 
       expect(fs.existsSync(serverPath)).toBe(true);
@@ -264,7 +264,7 @@ describe('Node.js API Project Creation Integration Tests', () => {
       expect(serverContent).toContain('app.listen');
     });
 
-    test('should include proper error handling', async () => {
+    test('should include proper error handling', async() => {
       const serverPath = path.join(tempDir, 'test-project', 'src', 'server.js');
       const serverContent = fs.readFileSync(serverPath, 'utf8');
 
@@ -275,7 +275,7 @@ describe('Node.js API Project Creation Integration Tests', () => {
   });
 
   describe('4. TypeScript configuration validation', () => {
-    test('should create TypeScript configuration when requested', async () => {
+    test('should create TypeScript configuration when requested', async() => {
       const tsConfigPath = path.join(tempDir, 'test-project', 'tsconfig.json');
       const packageJsonPath = path.join(tempDir, 'test-project', 'package.json');
 
@@ -478,7 +478,7 @@ describe('Node.js API Project Creation Integration Tests', () => {
   });
 
   describe('10. Error handling and edge cases', () => {
-    test('should handle existing directory conflicts', async () => {
+    test('should handle existing directory conflicts', async() => {
       // Create existing directory
       const existingPath = path.join(tempDir, 'existing-project');
       fs.ensureDirSync(existingPath);
@@ -491,7 +491,7 @@ describe('Node.js API Project Creation Integration Tests', () => {
       }).toThrow('Directory already exists');
     });
 
-    test('should handle invalid project names', async () => {
+    test('should handle invalid project names', async() => {
       const invalidNames = ['123project', 'project with spaces', '', 'Project-Capital'];
 
       invalidNames.forEach(name => {
@@ -505,7 +505,7 @@ describe('Node.js API Project Creation Integration Tests', () => {
       });
     });
 
-    test('should handle network failures during template download', async () => {
+    test('should handle network failures during template download', async() => {
       // This test will fail until proper error handling is implemented
       expect(() => {
         throw new Error('Network error: Unable to download template');
@@ -514,7 +514,7 @@ describe('Node.js API Project Creation Integration Tests', () => {
   });
 
   describe('11. Integration end-to-end workflow', () => {
-    test('should complete full project creation workflow', async () => {
+    test('should complete full project creation workflow', async() => {
       // This test validates the complete end-to-end workflow
       // It will fail until all components are implemented
 

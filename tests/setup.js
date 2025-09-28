@@ -8,8 +8,8 @@ jest.mock('simple-git', () => ({
   default: () => ({
     clone: jest.fn(),
     checkout: jest.fn(),
-    clean: jest.fn(),
-  }),
+    clean: jest.fn()
+  })
 }));
 
 jest.mock('ora', () => ({
@@ -19,24 +19,24 @@ jest.mock('ora', () => ({
     succeed: jest.fn().mockReturnThis(),
     fail: jest.fn().mockReturnThis(),
     info: jest.fn().mockReturnThis(),
-    stop: jest.fn().mockReturnThis(),
-  }),
+    stop: jest.fn().mockReturnThis()
+  })
 }));
 
 jest.mock('inquirer', () => ({
   __esModule: true,
   default: {
-    prompt: jest.fn(),
-  },
+    prompt: jest.fn()
+  }
 }));
 
 // Global test utilities
-global.createTempDir = async () => {
+global.createTempDir = async() => {
   const tempy = require('tempy');
   return tempy.directory();
 };
 
-global.createTempFile = async (content, filename = 'test.js') => {
+global.createTempFile = async(content, filename = 'test.js') => {
   const tempy = require('tempy');
   const tempPath = tempy.file({ name: filename });
   await fs.writeFile(tempPath, content);
@@ -44,7 +44,7 @@ global.createTempFile = async (content, filename = 'test.js') => {
 };
 
 // Clean up after each test
-afterEach(async () => {
+afterEach(async() => {
   jest.clearAllMocks();
 });
 

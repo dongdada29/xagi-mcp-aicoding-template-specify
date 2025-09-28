@@ -77,38 +77,38 @@
 ## Phase 3.3: Core Implementation (ONLY after tests are failing)
 
 ### Data Models (from data-model.md)
-- [ ] T025 [P] TemplatePackage model in src/models/template.js
-- [ ] T026 [P] ProjectConfiguration model in src/models/config.js
-- [ ] T027 [P] TemplateRegistry model in src/models/registry.js
-- [ ] T028 [P] CacheStore model in src/models/cache.js
-- [ ] T029 [P] ProjectInstance model in src/models/project.js
+- [x] T025 [P] TemplatePackage model in src/models/template.js
+- [x] T026 [P] ProjectConfiguration model in src/models/config.js
+- [x] T027 [P] TemplateRegistry model in src/models/registry.js
+- [x] T028 [P] CacheStore model in src/models/cache.js
+- [x] T029 [P] ProjectInstance model in src/models/project.js
 
 ### Core Services
-- [ ] T030 [P] TemplateManager service in src/core/template-manager.js
-- [ ] T031 [P] ConfigValidator service in src/core/config-validator.js
-- [ ] T032 [P] CacheManager service in src/core/cache-manager.js
-- [ ] T033 [P] GitManager service in src/core/git-manager.js
-- [ ] T034 [P] NpmService for registry operations in src/services/npm-service.js
-- [ ] T035 [P] GitService for repository operations in src/services/git-service.js
-- [ ] T036 [P] ProjectService for project creation in src/services/project-service.js
+- [x] T030 [P] TemplateManager service in src/core/template-manager.js
+- [x] T031 [P] ConfigValidator service in src/core/config-validator.js
+- [x] T032 [P] CacheManager service in src/core/cache-manager.js
+- [x] T033 [P] GitManager service in src/core/git-manager.js
+- [x] T034 [P] NpmService for registry operations in src/services/npm-service.js
+- [x] T035 [P] GitService for repository operations in src/services/git-service.js
+- [x] T036 [P] ProjectService for project creation in src/services/project-service.js
 
 ### CLI Commands
-- [ ] T037 [P] CLI list command for template discovery in src/cli/commands/list.js
-- [ ] T038 [P] CLI create command for project creation in src/cli/commands/create.js
-- [ ] T039 [P] CLI info command for template details in src/cli/commands/info.js
-- [ ] T040 [P] CLI cache command for cache management in src/cli/commands/cache.js
-- [ ] T041 [P] CLI config command for configuration management in src/cli/commands/config.js
+- [x] T037 [P] CLI list command for template discovery in src/cli/commands/list.js
+- [x] T038 [P] CLI create command for project creation in src/cli/commands/create.js
+- [x] T039 [P] CLI info command for template details in src/cli/commands/info.js
+- [x] T040 [P] CLI cache command for cache management in src/cli/commands/cache.js
+- [x] T041 [P] CLI config command for configuration management in src/cli/commands/config.js
 
 ### API Endpoints (from cli-api.json)
-- [ ] T042 GET /templates endpoint implementation
-- [ ] T043 POST /templates/validate endpoint implementation
-- [ ] T044 GET /templates/{id} endpoint implementation
-- [ ] T045 POST /projects endpoint implementation
-- [ ] T046 GET /projects/{id} endpoint implementation
-- [ ] T047 GET /cache endpoint implementation
-- [ ] T048 DELETE /cache/{id} endpoint implementation
-- [ ] T049 GET /registries endpoint implementation
-- [ ] T050 POST /registries/sync endpoint implementation
+- [x] T042 GET /templates endpoint implementation
+- [x] T043 POST /templates/validate endpoint implementation
+- [x] T044 GET /templates/{id} endpoint implementation
+- [x] T045 POST /projects endpoint implementation
+- [x] T046 GET /projects/{id} endpoint implementation
+- [x] T047 GET /cache endpoint implementation
+- [x] T048 DELETE /cache/{id} endpoint implementation
+- [x] T049 GET /registries endpoint implementation
+- [x] T050 POST /registries/sync endpoint implementation
 
 ## Phase 3.4: Integration
 - [ ] T051 Connect NpmService to npm registry with authentication support

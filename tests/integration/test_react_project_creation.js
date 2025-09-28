@@ -14,7 +14,7 @@ jest.mock('chalk', () => ({
   gray: jest.fn().mockImplementation(msg => msg),
   cyan: jest.fn().mockImplementation(msg => msg),
   magenta: jest.fn().mockImplementation(msg => msg),
-  white: jest.fn().mockImplementation(msg => msg),
+  white: jest.fn().mockImplementation(msg => msg)
 }));
 
 describe('React Next.js Project Creation Integration Tests', () => {
@@ -38,7 +38,7 @@ describe('React Next.js Project Creation Integration Tests', () => {
     console.error = originalConsoleError;
   });
 
-  beforeEach(async () => {
+  beforeEach(async() => {
     // Create temporary directory
     tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'xagi-test-'));
 
@@ -47,7 +47,7 @@ describe('React Next.js Project Creation Integration Tests', () => {
     process.env.XAGI_LOG_LEVEL = 'error';
   });
 
-  afterEach(async () => {
+  afterEach(async() => {
     // Clean up
     if (tempDir && fs.existsSync(tempDir)) {
       fs.removeSync(tempDir);
@@ -420,14 +420,14 @@ export default function RootLayout({ children }) {
   };
 
   describe('1. CLI Create Command Works with React Next.js Template', () => {
-    test('should fail when CLI create command is not implemented', async () => {
+    test('should fail when CLI create command is not implemented', async() => {
       // This test is designed to fail until the CLI create command is properly implemented
       expect(true).toBe(false); // This will fail and remind us to implement the CLI command
     });
   });
 
   describe('2. Project Structure Validation', () => {
-    test('should create correct directory structure with src and app directories', async () => {
+    test('should create correct directory structure with src and app directories', async() => {
       // Arrange
       const projectName = 'test-structure';
       const config = {
@@ -446,7 +446,7 @@ export default function RootLayout({ children }) {
       expect(fs.existsSync(path.join(projectPath, 'src', 'styles'))).toBe(true);
     });
 
-    test('should create correct files in project root', async () => {
+    test('should create correct files in project root', async() => {
       // Arrange
       const projectName = 'test-files';
       const config = {
@@ -471,7 +471,7 @@ export default function RootLayout({ children }) {
   });
 
   describe('3. TypeScript Configuration Validation', () => {
-    test('should configure TypeScript correctly when requested', async () => {
+    test('should configure TypeScript correctly when requested', async() => {
       // Arrange
       const projectName = 'test-typescript';
       const config = { typescript: true, srcDir: true };
@@ -501,7 +501,7 @@ export default function RootLayout({ children }) {
       expect(packageJson.devDependencies).toHaveProperty('@types/react-dom');
     });
 
-    test('should not create TypeScript configuration when not requested', async () => {
+    test('should not create TypeScript configuration when not requested', async() => {
       // Arrange
       const projectName = 'test-no-typescript';
       const config = { typescript: false };
@@ -520,7 +520,7 @@ export default function RootLayout({ children }) {
   });
 
   describe('4. Tailwind CSS Configuration Validation', () => {
-    test('should configure Tailwind CSS when requested', async () => {
+    test('should configure Tailwind CSS when requested', async() => {
       // Arrange
       const projectName = 'test-tailwind';
       const config = { tailwind: true };
@@ -552,7 +552,7 @@ export default function RootLayout({ children }) {
       expect(packageJson.devDependencies).toHaveProperty('postcss');
     });
 
-    test('should not create Tailwind CSS configuration when not requested', async () => {
+    test('should not create Tailwind CSS configuration when not requested', async() => {
       // Arrange
       const projectName = 'test-no-tailwind';
       const config = { tailwind: false };
@@ -571,7 +571,7 @@ export default function RootLayout({ children }) {
   });
 
   describe('5. ESLint and Prettier Configuration Validation', () => {
-    test('should configure ESLint for Next.js when requested', async () => {
+    test('should configure ESLint for Next.js when requested', async() => {
       // Arrange
       const projectName = 'test-eslint';
       const config = { eslint: true, typescript: true };
@@ -593,7 +593,7 @@ export default function RootLayout({ children }) {
       expect(packageJson.devDependencies).toHaveProperty('eslint-config-next');
     });
 
-    test('should configure Prettier when requested', async () => {
+    test('should configure Prettier when requested', async() => {
       // Arrange
       const projectName = 'test-prettier';
       const config = { prettier: true };
@@ -620,7 +620,7 @@ export default function RootLayout({ children }) {
   });
 
   describe('6. App and Src Directory Configuration', () => {
-    test('should configure both app and src directories when requested', async () => {
+    test('should configure both app and src directories when requested', async() => {
       // Arrange
       const projectName = 'test-both-dirs';
       const config = { appDir: true, srcDir: true };
@@ -638,7 +638,7 @@ export default function RootLayout({ children }) {
       expect(fs.existsSync(path.join(projectPath, 'app', 'page.js'))).toBe(true);
     });
 
-    test('should configure only src directory when app directory is disabled', async () => {
+    test('should configure only src directory when app directory is disabled', async() => {
       // Arrange
       const projectName = 'test-src-only';
       const config = { appDir: false, srcDir: true };
@@ -656,7 +656,7 @@ export default function RootLayout({ children }) {
   });
 
   describe('7. Import Aliases Configuration', () => {
-    test('should set up import aliases correctly with src directory', async () => {
+    test('should set up import aliases correctly with src directory', async() => {
       // Arrange
       const projectName = 'test-aliases-src';
       const config = { typescript: true, srcDir: true };
@@ -675,7 +675,7 @@ export default function RootLayout({ children }) {
       });
     });
 
-    test('should set up import aliases correctly without src directory', async () => {
+    test('should set up import aliases correctly without src directory', async() => {
       // Arrange
       const projectName = 'test-aliases-no-src';
       const config = { typescript: true, srcDir: false };
@@ -696,7 +696,7 @@ export default function RootLayout({ children }) {
   });
 
   describe('8. Integration Tests - Complete Project Creation', () => {
-    test('should create complete React Next.js project with all features', async () => {
+    test('should create complete React Next.js project with all features', async() => {
       // Arrange
       const projectName = 'test-complete-project';
       const config = {
@@ -739,7 +739,7 @@ export default function RootLayout({ children }) {
       expect(nextConfig).toContain('appDir: true');
     });
 
-    test('should create minimal React Next.js project with only required features', async () => {
+    test('should create minimal React Next.js project with only required features', async() => {
       // Arrange
       const projectName = 'test-minimal-project';
       const config = {
@@ -770,30 +770,30 @@ export default function RootLayout({ children }) {
   });
 
   describe('9. Error Handling and Edge Cases', () => {
-    test('should handle invalid project names', async () => {
+    test('should handle invalid project names', async() => {
       // This test would be implemented to verify CLI error handling
       expect(true).toBe(false); // Placeholder for CLI error handling test
     });
 
-    test('should handle invalid configuration options', async () => {
+    test('should handle invalid configuration options', async() => {
       // This test would be implemented to verify CLI error handling
       expect(true).toBe(false); // Placeholder for CLI error handling test
     });
 
-    test('should handle file system conflicts', async () => {
+    test('should handle file system conflicts', async() => {
       // This test would be implemented to verify CLI error handling
       expect(true).toBe(false); // Placeholder for CLI error handling test
     });
   });
 
   describe('10. CLI Command Integration', () => {
-    test('should integrate with CLI command parser', async () => {
+    test('should integrate with CLI command parser', async() => {
       // This test is designed to fail until CLI command integration is implemented
       // It should test that the CLI command properly parses arguments and calls the project creation logic
       expect(false).toBe(true); // This will fail and remind us to implement CLI integration
     });
 
-    test('should handle CLI options correctly', async () => {
+    test('should handle CLI options correctly', async() => {
       // This test should verify that CLI options like --dry-run, --config-file work correctly
       expect(false).toBe(true); // This will fail and remind us to implement CLI option handling
     });
